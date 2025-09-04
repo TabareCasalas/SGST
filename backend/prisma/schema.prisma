@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Usuario
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(CONSULTANT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  tramites  Tramite[]
+  documents Document[]
+
+  @@map("users")
+}
+
+// Modelo de Trámite
+model Tramite {
+  id          String        @id @default(cuid())
+  type        String
+  title       String
+  description String?
+  status      TramiteStatus @default(PENDING)
+  priority    Priority      @default(NORMAL)
+  applicant   String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relaciones
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents   Document[]
+
+  @@map("tramites")
+}
+
+// Modelo de Documento
+model Document {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  path        String
+  status      DocumentStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tramiteId   String
+  tramite     Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+  CONSULTANT
+}
+
+enum TramiteStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}

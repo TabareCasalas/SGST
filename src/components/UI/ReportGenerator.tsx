@@ -1,269 +1,217 @@
 import React, { useState } from 'react';
-
-export interface ReportData {
-  id: string;
-  title: string;
-  description: string;
-  type: 'tramites' | 'usuarios' | 'estadisticas';
-  format: 'pdf' | 'excel' | 'csv';
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  filters?: {
-    status?: string;
-    type?: string;
-    role?: string;
-  };
-}
+import { useAppStore } from '../../stores/useAppStore';
+import { useAppNotifications } from '../../hooks/useAppNotifications';
 
 interface ReportGeneratorProps {
-  onGenerateReport: (reportData: ReportData) => void;
-  isLoading?: boolean;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const ReportGenerator: React.FC<ReportGeneratorProps> = ({
-  onGenerateReport,
-  isLoading = false
-}) => {
-  const [reportData, setReportData] = useState<ReportData>({
-    id: '',
-    title: '',
-    description: '',
-    type: 'tramites',
-    format: 'pdf',
-    dateRange: {
-      start: '',
-      end: ''
-    },
-    filters: {}
-  });
+const ReportGenerator: React.FC<ReportGeneratorProps> = ({ isOpen, onClose }) => {
+  const { tramites, usuarios } = useAppStore();
+  const { showSuccess, showError } = useAppNotifications();
+  const [reportType, setReportType] = useState('tramites');
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleInputChange = (field: string, value: string) => {
-    setReportData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleFilterChange = (filterType: string, value: string) => {
-    setReportData(prev => ({
-      ...prev,
-      filters: {
-        ...prev.filters,
-        [filterType]: value
+  const generateReport = async () => {
+    setIsGenerating(true);
+    
+    try {
+      // Simular generación de reporte
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      let reportData = '';
+      
+      if (reportType === 'tramites') {
+        reportData = generateTramitesReport();
+      } else if (reportType === 'usuarios') {
+        reportData = generateUsuariosReport();
+      } else if (reportType === 'estadisticas') {
+        reportData = generateEstadisticasReport();
       }
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (reportData.title && reportData.dateRange.start && reportData.dateRange.end) {
-      onGenerateReport({
-        ...reportData,
-        id: `REP-${Date.now()}`
-      });
+      
+      // Simular descarga
+      const blob = new Blob([reportData], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte_${reportType}_${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      showSuccess('Reporte generado', 'El reporte se ha descargado correctamente');
+      onClose();
+    } catch (error) {
+      showError('Error', 'No se pudo generar el reporte');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const getReportTypeOptions = () => {
-    switch (reportData.type) {
-      case 'tramites':
-        return [
-          { value: 'pendiente', label: 'Pendientes' },
-          { value: 'en_proceso', label: 'En Proceso' },
-          { value: 'completado', label: 'Completados' },
-          { value: 'rechazado', label: 'Rechazados' }
-        ];
-      case 'usuarios':
-        return [
-          { value: 'estudiante', label: 'Estudiantes' },
-          { value: 'docente', label: 'Docentes' },
-          { value: 'consultante', label: 'Consultantes' },
-          { value: 'administrador', label: 'Administradores' }
-        ];
-      default:
-        return [];
-    }
+  const generateTramitesReport = () => {
+    const report = [
+      'REPORTE DE TRÁMITES',
+      '==================',
+      `Fecha de generación: ${new Date().toLocaleString()}`,
+      `Total de trámites: ${tramites.length}`,
+      '',
+      'DETALLE DE TRÁMITES:',
+      '-------------------'
+    ];
+    
+    tramites.forEach(tramite => {
+      report.push(`ID: ${tramite.id}`);
+      report.push(`Tipo: ${tramite.type}`);
+      report.push(`Solicitante: ${tramite.applicant}`);
+      report.push(`Estado: ${tramite.status}`);
+      report.push(`Prioridad: ${tramite.priority || 'No especificada'}`);
+      report.push(`Descripción: ${tramite.description}`);
+      report.push('---');
+    });
+    
+    return report.join('\n');
   };
+
+  const generateUsuariosReport = () => {
+    const report = [
+      'REPORTE DE USUARIOS',
+      '===================',
+      `Fecha de generación: ${new Date().toLocaleString()}`,
+      `Total de usuarios: ${usuarios.length}`,
+      '',
+      'DETALLE DE USUARIOS:',
+      '--------------------'
+    ];
+    
+    usuarios.forEach(usuario => {
+      report.push(`ID: ${usuario.id}`);
+      report.push(`Nombre: ${usuario.name}`);
+      report.push(`Email: ${usuario.email}`);
+      report.push(`Rol: ${usuario.role}`);
+      report.push(`Estado: ${usuario.isActive ? 'Activo' : 'Inactivo'}`);
+      report.push('---');
+    });
+    
+    return report.join('\n');
+  };
+
+  const generateEstadisticasReport = () => {
+    const tramitesPorEstado = tramites.reduce((acc, tramite) => {
+      acc[tramite.status] = (acc[tramite.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const usuariosPorRol = usuarios.reduce((acc, usuario) => {
+      acc[usuario.role] = (acc[usuario.role] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const report = [
+      'REPORTE DE ESTADÍSTICAS',
+      '========================',
+      `Fecha de generación: ${new Date().toLocaleString()}`,
+      '',
+      'ESTADÍSTICAS DE TRÁMITES:',
+      '-------------------------',
+      `Total de trámites: ${tramites.length}`,
+      ...Object.entries(tramitesPorEstado).map(([estado, cantidad]) => 
+        `${estado}: ${cantidad}`
+      ),
+      '',
+      'ESTADÍSTICAS DE USUARIOS:',
+      '-------------------------',
+      `Total de usuarios: ${usuarios.length}`,
+      ...Object.entries(usuariosPorRol).map(([rol, cantidad]) => 
+        `${rol}: ${cantidad}`
+      ),
+      '',
+      'RESUMEN:',
+      '--------',
+      `Usuarios activos: ${usuarios.filter(u => u.isActive).length}`,
+      `Trámites pendientes: ${tramitesPorEstado.pendiente || 0}`,
+      `Trámites completados: ${tramitesPorEstado.completado || 0}`
+    ];
+    
+    return report.join('\n');
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        📊 Generador de Reportes
-      </h3>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Información básica */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Generar Reporte
+          </h3>
+        </div>
+        
+        <div className="px-6 py-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Título del Reporte
-            </label>
-            <input
-              type="text"
-              value={reportData.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej: Reporte de Trámites - Enero 2024"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="reportType" className="block text-sm font-medium text-gray-700 mb-1">
               Tipo de Reporte
             </label>
             <select
-              value={reportData.type}
-              onChange={(e) => handleInputChange('type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              id="reportType"
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="tramites">Trámites</option>
-              <option value="usuarios">Usuarios</option>
-              <option value="estadisticas">Estadísticas</option>
+              <option value="tramites">Reporte de Trámites</option>
+              <option value="usuarios">Reporte de Usuarios</option>
+              <option value="estadisticas">Reporte de Estadísticas</option>
             </select>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Descripción
-          </label>
-          <textarea
-            value={reportData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={3}
-            placeholder="Descripción del reporte..."
-          />
-        </div>
-
-        {/* Rango de fechas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de Inicio
-            </label>
-            <input
-              type="date"
-              value={reportData.dateRange.start}
-              onChange={(e) => handleInputChange('dateRange', JSON.stringify({
-                ...reportData.dateRange,
-                start: e.target.value
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de Fin
-            </label>
-            <input
-              type="date"
-              value={reportData.dateRange.end}
-              onChange={(e) => handleInputChange('dateRange', JSON.stringify({
-                ...reportData.dateRange,
-                end: e.target.value
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Formato
-            </label>
-            <select
-              value={reportData.format}
-              onChange={(e) => handleInputChange('format', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="pdf">PDF</option>
-              <option value="excel">Excel</option>
-              <option value="csv">CSV</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Filtros */}
-        {reportData.type !== 'estadisticas' && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-3">
-              Filtros Adicionales
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estado/Rol
-                </label>
-                <select
-                  value={reportData.filters?.status || ''}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Todos</option>
-                  {getReportTypeOptions().map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {reportData.type === 'tramites' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de Trámite
-                  </label>
-                  <select
-                    value={reportData.filters?.type || ''}
-                    onChange={(e) => handleFilterChange('type', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos los tipos</option>
-                    <option value="Certificación">Certificación</option>
-                    <option value="Apostilla">Apostilla</option>
-                    <option value="Protocolización">Protocolización</option>
-                    <option value="Autenticación">Autenticación</option>
-                  </select>
-                </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">Información del reporte:</h4>
+            <ul className="text-sm text-gray-600 space-y-1">
+              {reportType === 'tramites' && (
+                <>
+                  <li>• Lista completa de trámites</li>
+                  <li>• Estado y prioridad de cada trámite</li>
+                  <li>• Información del solicitante</li>
+                </>
               )}
-            </div>
+              {reportType === 'usuarios' && (
+                <>
+                  <li>• Lista completa de usuarios</li>
+                  <li>• Roles y estado de cada usuario</li>
+                  <li>• Información de contacto</li>
+                </>
+              )}
+              {reportType === 'estadisticas' && (
+                <>
+                  <li>• Estadísticas generales del sistema</li>
+                  <li>• Distribución por estados y roles</li>
+                  <li>• Resumen ejecutivo</li>
+                </>
+              )}
+            </ul>
           </div>
-        )}
+        </div>
 
-        {/* Botones */}
-        <div className="flex justify-end space-x-3 pt-4 border-t">
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
           <button
-            type="button"
-            onClick={() => setReportData({
-              id: '',
-              title: '',
-              description: '',
-              type: 'tramites',
-              format: 'pdf',
-              dateRange: { start: '', end: '' },
-              filters: {}
-            })}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+            disabled={isGenerating}
           >
-            Limpiar
+            Cancelar
           </button>
           <button
-            type="submit"
-            disabled={isLoading || !reportData.title || !reportData.dateRange.start || !reportData.dateRange.end}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={generateReport}
+            disabled={isGenerating}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Generando...' : 'Generar Reporte'}
+            {isGenerating ? 'Generando...' : 'Generar Reporte'}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };
 
-export default ReportGenerator; 
+export default ReportGenerator;

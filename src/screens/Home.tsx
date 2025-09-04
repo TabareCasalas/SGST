@@ -1,16 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../components/UI/Button';
-import { useAuthContext } from '../hooks/useAuthContext';
+import { useAuthContext } from '../contexts/AuthContext.simple';
 import { ROLES } from '../constants/roles';
 
-interface HomeProps {
-  userName?: string;
-  onLogout?: () => void;
-  onNavigate?: (screen: string) => void;
-}
-
-const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate }) => {
+const Home: React.FC = () => {
   const { user } = useAuthContext();
+  const navigate = useNavigate();
 
   const getRoleBasedFeatures = () => {
     if (!user) return [];
@@ -25,8 +21,8 @@ const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate 
             color: 'bg-red-50 border-red-200',
             textColor: 'text-red-900',
             descColor: 'text-red-700',
-                               action: 'Ir al Panel',
-                   onClick: () => onNavigate?.('admin')
+            action: 'Ir al Panel',
+            onClick: () => navigate('/admin')
           },
           {
             title: 'Gestión de Usuarios',
@@ -35,8 +31,8 @@ const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate 
             color: 'bg-blue-50 border-blue-200',
             textColor: 'text-blue-900',
             descColor: 'text-blue-700',
-                               action: 'Gestionar Usuarios',
-                   onClick: () => onNavigate?.('usuarios')
+            action: 'Gestionar Usuarios',
+            onClick: () => navigate('/usuarios')
           },
           {
             title: 'Gestión de Trámites',
@@ -46,7 +42,7 @@ const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate 
             textColor: 'text-green-900',
             descColor: 'text-green-700',
             action: 'Ver Trámites',
-            onClick: () => onNavigate?.('tramites')
+            onClick: () => navigate('/tramites')
           },
           {
             title: 'Reportes y Estadísticas',
@@ -80,7 +76,7 @@ const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate 
             textColor: 'text-blue-900',
             descColor: 'text-blue-700',
             action: 'Ver Trámites',
-            onClick: () => onNavigate?.('tramites')
+            onClick: () => navigate('/tramites')
           },
           {
             title: 'Gestión de Documentos',
@@ -124,7 +120,7 @@ const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate 
             textColor: 'text-blue-900',
             descColor: 'text-blue-700',
             action: 'Ver Mis Trámites',
-            onClick: () => onNavigate?.('tramites')
+            onClick: () => navigate('/tramites')
           },
           {
             title: 'Subir Documentos',
@@ -168,7 +164,7 @@ const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate 
             textColor: 'text-blue-900',
             descColor: 'text-blue-700',
             action: 'Crear Trámite',
-            onClick: () => onNavigate?.('tramites')
+            onClick: () => navigate('/tramites')
           },
           {
             title: 'Mis Trámites',
@@ -178,7 +174,7 @@ const Home: React.FC<HomeProps> = ({ userName = 'Usuario', onLogout, onNavigate 
             textColor: 'text-green-900',
             descColor: 'text-green-700',
             action: 'Ver Mis Trámites',
-            onClick: () => onNavigate?.('tramites')
+            onClick: () => navigate('/tramites')
           },
           {
             title: 'Subir Documentos',

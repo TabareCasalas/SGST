@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../components/UI/Button';
 import Input from '../components/UI/Input';
+import { useAuthContext } from '../contexts/AuthContext.simple';
 
-interface LoginProps {
-  onLogin?: (email: string, password: string) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC = () => {
+  const { login } = useAuthContext();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -47,11 +47,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onLogin?.(formData.email, formData.password);
+      const result = await login(formData.email);
+      if (result.success) {
+        navigate('/');
+      } else {
+        setErrors({ general: result.error || 'Error de autenticación' });
+      }
     }
   };
 

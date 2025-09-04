@@ -1,9 +1,8 @@
 import { useCallback } from 'react';
 import { useAppStore } from '../stores/useAppStore';
-import type { Notification } from '../stores/useAppStore';
 
-export const useNotifications = () => {
-  const { notifications, addNotification, removeNotification, clearNotifications } = useAppStore();
+export const useAppNotifications = () => {
+  const { addNotification } = useAppStore();
 
   const showSuccess = useCallback((title: string, message: string) => {
     addNotification({
@@ -45,18 +44,10 @@ export const useNotifications = () => {
     });
   }, [addNotification]);
 
-  const showNotification = useCallback((notification: Omit<Notification, 'id'>) => {
-    addNotification(notification);
-  }, [addNotification]);
-
   return {
-    notifications,
     showSuccess,
     showError,
     showWarning,
-    showInfo,
-    showNotification,
-    removeNotification,
-    clearNotifications
+    showInfo
   };
 };
