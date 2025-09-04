@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { useAppNotifications } from '../../hooks/useAppNotifications';
-import { useTramites } from '../../hooks/useTramites';
-import { useAuth } from '../../hooks/useAuth';
 
 interface TramiteFormModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreateTramite: (data: any) => Promise<{ success: boolean; error?: string }>;
 }
 
-const TramiteFormModal: React.FC<TramiteFormModalProps> = ({ isOpen, onClose }) => {
-  const { createTramite } = useTramites();
-  const { showSuccess, showError } = useAppNotifications();
-  const { user } = useAuth();
-  
+const TramiteFormModal: React.FC<TramiteFormModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onCreateTramite 
+}) => {
   const [formData, setFormData] = useState({
     type: '',
     title: '',
@@ -20,37 +18,31 @@ const TramiteFormModal: React.FC<TramiteFormModalProps> = ({ isOpen, onClose }) 
     description: '',
     priority: 'NORMAL'
   });
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.type || !formData.title || !formData.applicant || !formData.description) {
-      showError('Error de validación', 'Por favor, completa todos los campos requeridos');
-      return;
-    }
+    setError(null);
 
-    if (!user) {
-      showError('Error de autenticación', 'Debes estar logueado para crear trámites');
+    if (!formData.type || !formData.title || !formData.applicant || !formData.description) {
+      setError('Por favor, completa todos los campos requeridos');
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      const result = await createTramite({
+      const result = await onCreateTramite({
         type: formData.type,
         title: formData.title,
         applicant: formData.applicant,
         description: formData.description,
         priority: formData.priority,
-        userId: user.id
+        userId: '1' // Usuario por defecto por ahora
       });
-      
+
       if (result.success) {
-        showSuccess('Trámite creado', `Se ha creado el trámite ${formData.type} para ${formData.applicant}`);
-        
         // Limpiar formulario
         setFormData({
           type: '',
@@ -59,13 +51,12 @@ const TramiteFormModal: React.FC<TramiteFormModalProps> = ({ isOpen, onClose }) 
           description: '',
           priority: 'NORMAL'
         });
-        
         onClose();
       } else {
-        showError('Error', result.error || 'No se pudo crear el trámite. Inténtalo de nuevo.');
+        setError(result.error || 'No se pudo crear el trámite');
       }
     } catch (error) {
-      showError('Error', 'No se pudo crear el trámite. Inténtalo de nuevo.');
+      setError('Error inesperado al crear el trámite');
     } finally {
       setIsSubmitting(false);
     }
@@ -89,8 +80,14 @@ const TramiteFormModal: React.FC<TramiteFormModalProps> = ({ isOpen, onClose }) 
             Crear Nuevo Trámite
           </h3>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+
           <div>
             <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
               Tipo de Trámite *
@@ -144,6 +141,22 @@ const TramiteFormModal: React.FC<TramiteFormModalProps> = ({ isOpen, onClose }) 
           </div>
 
           <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              Descripción *
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Descripción detallada del trámite"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            ></textarea>
+          </div>
+
+          <div>
             <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
               Prioridad
             </label>
@@ -154,42 +167,26 @@ const TramiteFormModal: React.FC<TramiteFormModalProps> = ({ isOpen, onClose }) 
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="baja">Baja</option>
-              <option value="normal">Normal</option>
-              <option value="alta">Alta</option>
-              <option value="urgente">Urgente</option>
+              <option value="LOW">Baja</option>
+              <option value="NORMAL">Normal</option>
+              <option value="HIGH">Alta</option>
+              <option value="URGENT">Urgente</option>
             </select>
           </div>
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Descripción *
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Descripción detallada del trámite"
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
               disabled={isSubmitting}
             >
               Cancelar
             </button>
             <button
               type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Creando...' : 'Crear Trámite'}
             </button>
