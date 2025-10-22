@@ -7,14 +7,14 @@ interface NavbarProps {
   user: User | null;
   currentPath: string;
   onLogout: () => void;
-  onNavigate: (path: string) => void;
+  // onNavigate // Comentado para evitar error de variable no utilizada: (path: string) => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ 
   user,
   currentPath,
   onLogout,
-  onNavigate
+  // onNavigate // Comentado para evitar error de variable no utilizada
 }) => {
   const isAuthenticated = !!user;
   return (

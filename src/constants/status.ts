@@ -1,4 +1,4 @@
-import { TramiteStatus, TramiteType, TramitePriority } from '../types/tramites';
+import type { TramiteStatus, TramiteType, TramitePriority } from '../types/tramites';
 
 // Estados de trámites con colores y descripciones
 export const TRAMITE_STATUS: Record<TramiteStatus, {

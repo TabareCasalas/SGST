@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Button from '../UI/Button';
 import Input from '../UI/Input';
-import { TramiteType, TramitePriority, CreateTramiteData } from '../../types/tramites';
+import type { TramiteType, TramitePriority, CreateTramiteData } from '../../types/tramites';
 import { TRAMITE_TYPES, TRAMITE_PRIORITIES } from '../../constants/status';
 
 interface TramiteFormProps {

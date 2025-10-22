@@ -1,106 +1,75 @@
 import { useState, useEffect } from 'react';
-import { tramiteService, type Tramite, type CreateTramiteData } from '../services/apiService';
+import { tramiteService } from '../services/tramiteService';
+import type { Tramite, CreateTramiteRequest, UpdateTramiteRequest } from '../types/tramites';
 
 export const useTramites = () => {
   const [tramites, setTramites] = useState<Tramite[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar trámites al montar el componente
-  useEffect(() => {
-    loadTramites();
-  }, []);
-
-  const loadTramites = async () => {
+  const fetchTramites = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
-      const response = await tramiteService.getAll();
-      
-      if (response.success && response.data) {
-        setTramites(response.data);
-      } else {
-        setError(response.error || 'Error al cargar trámites');
-      }
+      const response = await tramiteService.getAllTramites();
+      setTramites(response);
     } catch (err) {
-      setError('Error al cargar trámites');
-      console.error('Error loading tramites:', err);
+      setError(err instanceof Error ? err.message : 'Error al cargar trámites');
+      console.error('Error fetching tramites:', err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const createTramite = async (data: CreateTramiteData) => {
+  const createTramite = async (tramiteData: CreateTramiteRequest) => {
     try {
       setError(null);
-      const response = await tramiteService.create(data);
-      
-      if (response.success && response.data) {
-        setTramites(prev => [response.data!, ...prev]);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.error || 'Error al crear trámite');
-        return { success: false, error: response.error };
-      }
+      const newTramite = await tramiteService.createTramite(tramiteData);
+      setTramites(prev => [...prev, newTramite]);
+      return newTramite;
     } catch (err) {
-      const errorMsg = 'Error al crear trámite';
-      setError(errorMsg);
-      console.error('Error creating tramite:', err);
-      return { success: false, error: errorMsg };
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear trámite';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
-  const updateTramite = async (id: string, data: Partial<CreateTramiteData>) => {
+  const updateTramite = async (id: number, tramiteData: UpdateTramiteRequest) => {
     try {
       setError(null);
-      const response = await tramiteService.update(id, data);
-      
-      if (response.success && response.data) {
-        setTramites(prev => 
-          prev.map(tramite => 
-            tramite.id === id ? response.data! : tramite
-          )
-        );
-        return { success: true, data: response.data };
-      } else {
-        setError(response.error || 'Error al actualizar trámite');
-        return { success: false, error: response.error };
-      }
+      const updatedTramite = await tramiteService.updateTramite(id, tramiteData);
+      setTramites(prev => prev.map(tramite => tramite.id_tramite === id ? updatedTramite : tramite));
+      return updatedTramite;
     } catch (err) {
-      const errorMsg = 'Error al actualizar trámite';
-      setError(errorMsg);
-      console.error('Error updating tramite:', err);
-      return { success: false, error: errorMsg };
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar trámite';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
-  const deleteTramite = async (id: string) => {
+  const deleteTramite = async (id: number) => {
     try {
       setError(null);
-      const response = await tramiteService.delete(id);
-      
-      if (response.success) {
-        setTramites(prev => prev.filter(tramite => tramite.id !== id));
-        return { success: true };
-      } else {
-        setError(response.error || 'Error al eliminar trámite');
-        return { success: false, error: response.error };
-      }
+      await tramiteService.deleteTramite(id);
+      setTramites(prev => prev.filter(tramite => tramite.id_tramite !== id));
     } catch (err) {
-      const errorMsg = 'Error al eliminar trámite';
-      setError(errorMsg);
-      console.error('Error deleting tramite:', err);
-      return { success: false, error: errorMsg };
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar trámite';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
   };
+
+  useEffect(() => {
+    fetchTramites();
+  }, []);
 
   return {
     tramites,
-    isLoading,
+    loading,
     error,
-    loadTramites,
     createTramite,
     updateTramite,
     deleteTramite,
+    refetch: fetchTramites
   };
 };

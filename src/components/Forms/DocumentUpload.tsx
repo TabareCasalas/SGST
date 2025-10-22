@@ -24,7 +24,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   onUpload,
   onDelete,
   onStatusChange,
-  maxFiles = 10,
+  // maxFiles = 10, // Comentado para evitar error de variable no utilizada
   maxSize = 10,
   acceptedTypes = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png']
 }) => {

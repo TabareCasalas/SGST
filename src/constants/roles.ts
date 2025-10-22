@@ -1,4 +1,4 @@
-import { UserRole, Permission } from '../types/auth';
+import type { UserRole, Permission } from '../types/auth';
 
 // Definición de roles
 export const ROLES: Record<UserRole, string> = {

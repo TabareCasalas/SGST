@@ -11,89 +11,263 @@ datasource db {
 }
 
 // Modelo de Usuario
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      UserRole @default(CONSULTANT)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Usuario {
+  id_usuario        Int      @id @default(autoincrement())
+  nombre            String
+  ci                String   @unique
+  domicilio         String
+  telefono          String
+  fecha_alta        DateTime @default(now())
+  estado            String   @default("activo")
+  correo            String   @unique
+  hash_pass         String
+  fecha_ult_login   DateTime?
 
   // Relaciones
-  tramites  Tramite[]
-  documents Document[]
+  usuarioRoles      UsuarioRol[]
+  consultante       Consultante?
+  estudiante        Estudiante?
+  docente           Docente?
+  administrativo    Administrativo?
+  auditorias        Auditoria[]
+  usuarioNotificaciones UsuarioNotificacion[]
 
-  @@map("users")
+  @@map("usuarios")
+}
+
+// Modelo de Rol
+model Rol {
+  id_rol     Int    @id @default(autoincrement())
+  nombre     String @unique
+
+  // Relaciones
+  usuarioRoles UsuarioRol[]
+
+  @@map("roles")
+}
+
+// Tabla intermedia Usuario_Rol
+model UsuarioRol {
+  id_usuario Int
+  id_rol     Int
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  rol     Rol     @relation(fields: [id_rol], references: [id_rol], onDelete: Cascade)
+
+  @@id([id_usuario, id_rol])
+  @@map("usuario_rol")
+}
+
+// Modelo de Consultante
+model Consultante {
+  id_consultante Int    @id @default(autoincrement())
+  id_usuario     Int    @unique
+  est_civil      String
+  nro_padron     Int
+
+  // Relaciones
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  tramites Tramite[]
+
+  @@map("consultantes")
+}
+
+// Modelo de Estudiante
+model Estudiante {
+  id_estudiante Int    @id @default(autoincrement())
+  id_usuario    Int    @unique
+  semestre      Int
+  id_grupo      Int
+
+  // Relaciones
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  grupo   Grupo   @relation(fields: [id_grupo], references: [id_grupo], onDelete: Cascade)
+  
+  grupoEstudiantes GrupoEstudiante[]
+  estudianteTramites EstudianteTramite[]
+
+  @@map("estudiantes")
+}
+
+// Modelo de Docente
+model Docente {
+  id_docente    Int    @id @default(autoincrement())
+  id_usuario    Int    @unique
+  tipo_docente  String // titular/asistente
+
+  // Relaciones
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  grupoDocentes GrupoDocente[]
+
+  @@map("docentes")
+}
+
+// Modelo de Administrativo
+model Administrativo {
+  id_administrativo Int    @id @default(autoincrement())
+  id_usuario        Int    @unique
+  tipo_funcionario  String // agendador/consulta
+  nivel             Int
+
+  // Relaciones
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  turnos  Turno[]
+
+  @@map("administrativos")
+}
+
+// Modelo de Grupo
+model Grupo {
+  id_grupo Int    @id @default(autoincrement())
+  nombre   String
+
+  // Relaciones
+  estudiantes Estudiante[]
+  grupoEstudiantes GrupoEstudiante[]
+  grupoDocentes GrupoDocente[]
+  tramites Tramite[]
+
+  @@map("grupos")
+}
+
+// Tabla intermedia Grupo_Estudiante
+model GrupoEstudiante {
+  id_grupo      Int
+  id_estudiante Int
+
+  grupo     Grupo     @relation(fields: [id_grupo], references: [id_grupo], onDelete: Cascade)
+  estudiante Estudiante @relation(fields: [id_estudiante], references: [id_estudiante], onDelete: Cascade)
+
+  @@id([id_grupo, id_estudiante])
+  @@map("grupo_estudiante")
+}
+
+// Tabla intermedia Grupo_Docente
+model GrupoDocente {
+  id_grupo   Int
+  id_docente Int
+  rol_docente String
+
+  grupo   Grupo   @relation(fields: [id_grupo], references: [id_grupo], onDelete: Cascade)
+  docente Docente @relation(fields: [id_docente], references: [id_docente], onDelete: Cascade)
+
+  @@id([id_grupo, id_docente])
+  @@map("grupo_docente")
 }
 
 // Modelo de Trámite
 model Tramite {
-  id          String        @id @default(cuid())
-  type        String
-  title       String
-  description String?
-  status      TramiteStatus @default(PENDING)
-  priority    Priority      @default(NORMAL)
-  applicant   String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id_tramite       Int      @id @default(autoincrement())
+  id_consultante   Int
+  id_grupo         Int
+  num_carpeta      Int
+  fecha_inicio     DateTime @default(now())
+  estado           String   @default("pendiente")
+  observaciones    String?
+  fecha_cierre     DateTime?
+  motivo_cierre    String?
 
   // Relaciones
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documents   Document[]
+  consultante Consultante @relation(fields: [id_consultante], references: [id_consultante], onDelete: Cascade)
+  grupo       Grupo       @relation(fields: [id_grupo], references: [id_grupo], onDelete: Cascade)
+  
+  adjuntos Adjunto[]
+  casoTurnos CasoTurno[]
+  notificaciones Notificacion[]
+  auditorias Auditoria[]
+  estudianteTramites EstudianteTramite[]
 
   @@map("tramites")
 }
 
-// Modelo de Documento
-model Document {
-  id          String   @id @default(cuid())
-  filename    String
-  originalName String
-  mimeType    String
-  size        Int
-  path        String
-  status      DocumentStatus @default(PENDING)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Modelo de Adjunto
+model Adjunto {
+  id_adjunto     Int    @id @default(autoincrement())
+  id_tramite     Int
+  nombre_archivo String
+  ruta           String
 
   // Relaciones
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tramiteId   String
-  tramite     Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  tramite Tramite @relation(fields: [id_tramite], references: [id_tramite], onDelete: Cascade)
 
-  @@map("documents")
+  @@map("adjuntos")
 }
 
-// Enums
-enum UserRole {
-  ADMIN
-  TEACHER
-  STUDENT
-  CONSULTANT
+// Modelo de Turno
+model Turno {
+  id_turno    Int      @id @default(autoincrement())
+  fecha_hora  DateTime
+  id_admin    Int
+
+  // Relaciones
+  administrativo Administrativo @relation(fields: [id_admin], references: [id_administrativo], onDelete: Cascade)
+  casoTurnos CasoTurno[]
+
+  @@map("turnos")
 }
 
-enum TramiteStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  REJECTED
-  CANCELLED
+// Tabla intermedia Caso_Turno
+model CasoTurno {
+  id_tramite Int
+  id_turno   Int
+
+  tramite Tramite @relation(fields: [id_tramite], references: [id_tramite], onDelete: Cascade)
+  turno   Turno   @relation(fields: [id_turno], references: [id_turno], onDelete: Cascade)
+
+  @@id([id_tramite, id_turno])
+  @@map("caso_turno")
 }
 
-enum Priority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
+// Modelo de Notificación
+model Notificacion {
+  id_notificacion Int      @id @default(autoincrement())
+  id_tramite      Int
+  mensaje         String
+  fecha_envio     DateTime @default(now())
+
+  // Relaciones
+  tramite Tramite @relation(fields: [id_tramite], references: [id_tramite], onDelete: Cascade)
+  usuarioNotificaciones UsuarioNotificacion[]
+
+  @@map("notificaciones")
 }
 
-enum DocumentStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  EXPIRED
+// Tabla intermedia Usuario_Notificación
+model UsuarioNotificacion {
+  id_usuario       Int
+  id_notificacion  Int
+  estado           String @default("pendiente") // pendiente/leída
+
+  usuario      Usuario      @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  notificacion Notificacion @relation(fields: [id_notificacion], references: [id_notificacion], onDelete: Cascade)
+
+  @@id([id_usuario, id_notificacion])
+  @@map("usuario_notificacion")
+}
+
+// Modelo de Auditoría
+model Auditoria {
+  id_auditoria Int      @id @default(autoincrement())
+  id_usuario   Int
+  id_tramite   Int?
+  accion       String
+  fecha        DateTime @default(now())
+
+  // Relaciones
+  usuario Usuario  @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  tramite Tramite? @relation(fields: [id_tramite], references: [id_tramite], onDelete: SetNull)
+
+  @@map("auditorias")
+}
+
+// Tabla intermedia Estudiante_Trámite (opcional)
+model EstudianteTramite {
+  id_estudiante Int
+  id_tramite    Int
+
+  estudiante Estudiante @relation(fields: [id_estudiante], references: [id_estudiante], onDelete: Cascade)
+  tramite    Tramite    @relation(fields: [id_tramite], references: [id_tramite], onDelete: Cascade)
+
+  @@id([id_estudiante, id_tramite])
+  @@map("estudiante_tramite")
 }

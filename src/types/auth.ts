@@ -1,5 +1,7 @@
-// Tipos de roles de usuario
-export type UserRole = 'consultante' | 'estudiante' | 'docente' | 'administrador';
+// Tipos actualizados para autenticación con la nueva base de datos
+
+// Tipos de roles de usuario (actualizados)
+export type UserRole = 'Administrador' | 'Consultor' | 'Estudiante' | 'Docente' | 'Administrativo';
 
 // Tipos de permisos
 export type Permission = 
@@ -7,58 +9,79 @@ export type Permission =
   | 'tramites.read'
   | 'tramites.update'
   | 'tramites.delete'
-  | 'documentos.upload'
-  | 'documentos.download'
+  | 'adjuntos.upload'
+  | 'adjuntos.download'
   | 'usuarios.manage'
   | 'reportes.generate'
-  | 'sistema.config';
+  | 'sistema.config'
+  | 'turnos.manage'
+  | 'notificaciones.send'
+  | 'auditoria.view';
 
-// Interfaz de usuario
+// Interfaz de usuario (actualizada)
 export interface User {
-  id: string;
-  email: string;
-  name: string;
-  lastName: string;
-  role: UserRole;
-  permissions: Permission[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastLogin?: string;
-  profile?: UserProfile;
+  id: number;
+  nombre: string;
+  ci: string;
+  domicilio: string;
+  telefono: string;
+  fecha_registro: string;
+  estado: string;
+  correo: string;
+  fecha_ult_login?: string;
+  roles?: Rol[];
+  consultante?: Consultante;
+  estudiante?: Estudiante;
+  docente?: Docente;
+  administrativo?: Administrativo;
 }
 
-// Perfil de usuario
-export interface UserProfile {
-  id: string;
-  userId: string;
-  phone?: string;
-  address?: string;
-  documentNumber?: string;
-  documentType?: 'dni' | 'pasaporte' | 'ce';
-  academicInfo?: AcademicInfo;
-  preferences?: UserPreferences;
+// Interfaz de Rol
+export interface Rol {
+  id: number;
+  nombre: string;
 }
 
-// Información académica (para estudiantes y docentes)
-export interface AcademicInfo {
-  studentId?: string;
-  faculty?: string;
-  career?: string;
-  year?: number;
-  semester?: number;
-  academicStatus?: 'activo' | 'inactivo' | 'graduado';
+// Interfaz de Consultante
+export interface Consultante {
+  id_consultante: number;
+  id_usuario: number;
+  est_civil: string;
+  nro_padron: number;
+  usuario?: User;
 }
 
-// Preferencias del usuario
-export interface UserPreferences {
-  notifications: {
-    email: boolean;
-    push: boolean;
-    sms: boolean;
-  };
-  language: 'es' | 'en';
-  theme: 'light' | 'dark';
+// Interfaz de Estudiante
+export interface Estudiante {
+  id_estudiante: number;
+  id_usuario: number;
+  semestre: number;
+  id_grupo: number;
+  usuario?: User;
+  grupo?: Grupo;
+}
+
+// Interfaz de Docente
+export interface Docente {
+  id_docente: number;
+  id_usuario: number;
+  tipo_docente: string;
+  usuario?: User;
+}
+
+// Interfaz de Administrativo
+export interface Administrativo {
+  id_administrativo: number;
+  id_usuario: number;
+  tipo_funcionario: string;
+  nivel: number;
+  usuario?: User;
+}
+
+// Interfaz de Grupo
+export interface Grupo {
+  id_grupo: number;
+  nombre: string;
 }
 
 // Estado de autenticación
@@ -71,25 +94,100 @@ export interface AuthState {
 
 // Credenciales de login
 export interface LoginCredentials {
-  email: string;
+  correo: string;
   password: string;
 }
 
 // Respuesta de login
 export interface LoginResponse {
   success: boolean;
-  user?: User;
-  token?: string;
+  data?: {
+    token: string;
+    usuario: User;
+    roles: Rol[];
+  };
   error?: string;
 }
 
 // Registro de usuario
 export interface RegisterData {
-  email: string;
+  nombre: string;
+  ci: string;
+  domicilio: string;
+  telefono: string;
+  correo: string;
   password: string;
-  name: string;
-  lastName: string;
-  role: UserRole;
-  documentNumber?: string;
-  documentType?: 'dni' | 'pasaporte' | 'ce';
-} 
+  roles: number[];
+}
+
+// Crear usuario
+export interface CreateUserRequest {
+  nombre: string;
+  ci: string;
+  domicilio: string;
+  telefono: string;
+  correo: string;
+  password: string;
+  roles: string[];
+}
+
+// Respuesta de API
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+// Tipos para trámites
+export interface Tramite {
+  id: number;
+  id_consultante: number;
+  id_grupo: number;
+  num_carpeta: number;
+  fecha_inicio: string;
+  estado: string;
+  observaciones?: string;
+  fecha_cierre?: string;
+  motivo_cierre?: string;
+  consultante?: {
+    id_consultante: number;
+    id_usuario: number;
+    est_civil: string;
+    nro_padron: number;
+    usuario?: {
+      id_usuario: number;
+      nombre: string;
+      ci: string;
+      domicilio: string;
+      telefono: string;
+      correo: string;
+    };
+  };
+  grupo?: {
+    id_grupo: number;
+    nombre: string;
+  };
+}
+
+export interface CreateTramiteRequest {
+  id_consultante: number;
+  id_grupo: number;
+  num_carpeta: number;
+  observaciones?: string;
+}
+
+export interface UpdateTramiteRequest {
+  estado?: string;
+  observaciones?: string;
+  fecha_cierre?: string;
+  motivo_cierre?: string;
+}
+
+export interface TramiteStats {
+  total: number;
+  pendientes: number;
+  en_proceso: number;
+  completados: number;
+  cancelados: number;
+}

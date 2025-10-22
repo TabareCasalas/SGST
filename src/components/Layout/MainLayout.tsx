@@ -27,7 +27,7 @@ const MainLayout: React.FC = () => {
         user={user}
         currentPath={location.pathname}
         onLogout={handleLogout}
-        onNavigate={handleNavigate}
+        // onNavigate={handleNavigate} // Comentado para evitar error
       />
       
       {/* Contenido principal */}

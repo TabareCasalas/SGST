@@ -1,6 +1,5 @@
-import React from 'react';
-import { AuthProvider } from './contexts/AuthContext.ultra-simple';
-import AppRouter from './router/AppRouter.ultra-simple';
+import { AuthProvider } from './contexts/AuthContext';
+import AppRouter from './router/AppRouter';
 
 // App principal
 function App() {

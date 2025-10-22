@@ -1,30 +1,52 @@
 // Tipos para las respuestas del API
 export interface LoginRequest {
-  email: string;
+  correo: string;
   password: string;
 }
 
 export interface LoginResponse {
   success: boolean;
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
+  data?: {
+    token: string;
+    usuario: {
+      id_usuario: number;
+      nombre: string;
+      ci: string;
+      domicilio: string;
+      telefono: string;
+      fecha_alta: string;
+      estado: string;
+      correo: string;
+      fecha_ult_login?: string;
+    };
+    roles: Array<{
+      id_rol: number;
+      nombre: string;
+    }>;
   };
-  token?: string;
   error?: string;
 }
 
 export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
+  id_usuario: number;
+  nombre: string;
+  ci: string;
+  domicilio: string;
+  telefono: string;
+  fecha_alta: string;
+  estado: string;
+  correo: string;
+  fecha_ult_login?: string;
+  roles?: Array<{
+    id_rol: number;
+    nombre: string;
+  }>;
 }
 
+import { config } from '../config/env';
+
 // Configuración base del API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = config.API_URL;
 
 // Función helper para hacer requests
 const apiRequest = async <T>(
@@ -69,13 +91,13 @@ export const authService = {
   // Login
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await apiRequest<LoginResponse>('/auth/login', {
+      const response = await apiRequest<LoginResponse>('/users/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
       });
       
-      if (response.success && response.token) {
-        localStorage.setItem('authToken', response.token);
+      if (response.success && response.data?.token) {
+        localStorage.setItem('authToken', response.data.token);
       }
       
       return response;
@@ -88,25 +110,24 @@ export const authService = {
   },
 
   // Logout
-  async logout(): Promise<void> {
-    try {
-      await apiRequest('/auth/logout', {
-        method: 'POST',
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('authToken');
-    }
+  logout(): void {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userRoles');
+  },
+
+  // Obtener token
+  getToken(): string | null {
+    return localStorage.getItem('authToken');
   },
 
   // Verificar token
   async verifyToken(): Promise<User | null> {
     try {
-      const response = await apiRequest<{ user: User }>('/auth/verify');
-      return response.user;
+      const response = await apiRequest<{ success: boolean; data: User }>('/users/me');
+      return response.data;
     } catch (error) {
-      localStorage.removeItem('authToken');
+      this.logout();
       return null;
     }
   },
@@ -114,8 +135,8 @@ export const authService = {
   // Obtener usuario actual
   async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await apiRequest<{ user: User }>('/auth/me');
-      return response.user;
+      const response = await apiRequest<{ success: boolean; data: User }>('/users/me');
+      return response.data;
     } catch (error) {
       return null;
     }
