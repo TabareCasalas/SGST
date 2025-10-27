@@ -1,0 +1,190 @@
+.tramites-container {
+  padding: 20px;
+}
+
+.tramites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tramites-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.refresh-btn {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.refresh-btn:hover {
+  background-color: #0056b3;
+}
+
+.loading,
+.error,
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+}
+
+.error {
+  color: #dc3545;
+}
+
+.tramites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.tramite-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tramite-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.tramite-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.tramite-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.estado-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.estado-blue {
+  background-color: #007bff;
+  color: white;
+}
+
+.estado-orange {
+  background-color: #ff9800;
+  color: white;
+}
+
+.estado-green {
+  background-color: #28a745;
+  color: white;
+}
+
+.estado-red {
+  background-color: #dc3545;
+  color: white;
+}
+
+.estado-gray {
+  background-color: #6c757d;
+  color: white;
+}
+
+.tramite-body {
+  margin-bottom: 15px;
+}
+
+.tramite-body p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.tramite-body strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.process-id {
+  font-family: monospace;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.tramite-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.delete-btn {
+  padding: 6px 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* Botón de tareas pendientes */
+.nav-toggle {
+  padding: 8px 16px;
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.nav-toggle:hover {
+  background-color: #f57c00;
+  transform: translateY(-2px);
+}
+
+.nav-toggle.active {
+  background-color: #28a745;
+}
+
+.nav-toggle.active:hover {
+  background-color: #218838;
+}
+
+/* Sección de tareas pendientes */
+.tareas-pendientes {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+}
+
+.tareas-pendientes h3 {
+  margin-top: 0;
+  color: #856404;
+}
+

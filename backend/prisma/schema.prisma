@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id_usuario    Int      @id @default(autoincrement())
+  nombre        String
+  ci            String   @unique
+  domicilio     String
+  telefono      String
+  correo        String   @unique
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  consultantes  Consultante[]
+}
+
+model Consultante {
+  id_consultante Int      @id @default(autoincrement())
+  id_usuario     Int      @unique
+  est_civil      String
+  nro_padron     Int      @unique
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  
+  usuario        Usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  tramites       Tramite[]
+}
+
+model Grupo {
+  id_grupo    Int      @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  activo      Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  tramites    Tramite[]
+}
+
+model Tramite {
+  id_tramite    Int       @id @default(autoincrement())
+  id_consultante Int
+  id_grupo      Int
+  num_carpeta   Int       @unique
+  estado        String    @default("iniciado")
+  observaciones String?
+  fecha_inicio  DateTime  @default(now())
+  fecha_cierre  DateTime?
+  motivo_cierre String?
+  process_instance_id String? // ID de la instancia en Camunda
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  
+  consultante   Consultante @relation(fields: [id_consultante], references: [id_consultante])
+  grupo         Grupo       @relation(fields: [id_grupo], references: [id_grupo])
+  notificaciones Notificacion[]
+}
+
+model Notificacion {
+  id_notificacion   Int      @id @default(autoincrement())
+  id_tramite        Int
+  tipo_notificacion String
+  mensaje           String
+  enviado           Boolean  @default(false)
+  created_at        DateTime  @default(now())
+  
+  tramite           Tramite  @relation(fields: [id_tramite], references: [id_tramite])
+}
+
+

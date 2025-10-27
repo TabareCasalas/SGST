@@ -1,0 +1,87 @@
+.tarea-card {
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.tarea-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #007bff;
+}
+
+.tarea-header h3 {
+  margin: 0;
+  color: #007bff;
+  font-size: 18px;
+}
+
+.badge-en-revision {
+  padding: 6px 12px;
+  background-color: #ff9800;
+  color: white;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.tarea-body {
+  margin-bottom: 15px;
+}
+
+.tarea-body p {
+  margin: 8px 0;
+  color: #333;
+  font-size: 14px;
+}
+
+.tarea-body strong {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.tarea-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-aprobar,
+.btn-rechazar {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-aprobar {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-aprobar:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-rechazar {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-rechazar:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+

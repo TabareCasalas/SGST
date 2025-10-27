@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_flujo_tramite" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="4.12.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.15.0">
+  <bpmn:process id="procesoTramite" name="Proceso de Trámite" isExecutable="true" camunda:historyTimeToLive="180">
+    <!-- Start Event: Inicio del trámite -->
+    <bpmn:startEvent id="StartEvent_Inicio">
+      <bpmn:outgoing>Flow_Inicio</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Service Task (External): actualizar-estado - Estado: "En revisión" -->
+    <bpmn:serviceTask id="taskActualizarEnRevision" name="Marcar en Revisión" camunda:type="external" camunda:topic="actualizar-estado">
+      <bpmn:incoming>Flow_Inicio</bpmn:incoming>
+      <bpmn:outgoing>Flow_RevisionDocente</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- User Task: Revisión docente -->
+    <bpmn:userTask id="taskRevisionDocente" name="Revisión Docente" camunda:assignee="reviewer" camunda:candidateGroups="Docentes">
+      <bpmn:incoming>Flow_RevisionDocente</bpmn:incoming>
+      <bpmn:outgoing>Flow_Evaluar</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Exclusive Gateway: ¿Aprobado? -->
+    <bpmn:exclusiveGateway id="Gateway_Aprobado" name="¿Aprobado?">
+      <bpmn:incoming>Flow_Evaluar</bpmn:incoming>
+      <bpmn:outgoing>Flow_Aprobado</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rechazado</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Service Task (External): enviar-notificacion - Aprobado -->
+    <bpmn:serviceTask id="taskNotificarAprobado" name="Notificar Aprobación" camunda:type="external" camunda:topic="enviar-notificacion">
+      <bpmn:incoming>Flow_Aprobado</bpmn:incoming>
+      <bpmn:outgoing>Flow_Finalizar</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Service Task (External): enviar-notificacion - Rechazado -->
+    <bpmn:serviceTask id="taskNotificarRechazado" name="Notificar Rechazo" camunda:type="external" camunda:topic="enviar-notificacion">
+      <bpmn:incoming>Flow_Rechazado</bpmn:incoming>
+      <bpmn:outgoing>Flow_Finalizar</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Gateway de convergencia (une ambas ramas) -->
+    <bpmn:parallelGateway id="Gateway_Convergencia" name="Convergencia">
+      <bpmn:incoming>Flow_NotificacionAprobado</bpmn:incoming>
+      <bpmn:incoming>Flow_NotificacionRechazado</bpmn:incoming>
+      <bpmn:outgoing>Flow_Finalizar</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <!-- Service Task (External): actualizar-estado - Finalizar -->
+    <bpmn:serviceTask id="taskFinalizar" name="Finalizar Trámite" camunda:type="external" camunda:topic="actualizar-estado">
+      <bpmn:incoming>Flow_Finalizar</bpmn:incoming>
+      <bpmn:outgoing>Flow_Fin</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- End Event: Trámite finalizado -->
+    <bpmn:endEvent id="EndEvent_Finalizado">
+      <bpmn:incoming>Flow_Fin</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_Inicio" sourceRef="StartEvent_Inicio" targetRef="taskActualizarEnRevision" />
+    <bpmn:sequenceFlow id="Flow_RevisionDocente" sourceRef="taskActualizarEnRevision" targetRef="taskRevisionDocente" />
+    <bpmn:sequenceFlow id="Flow_Evaluar" sourceRef="taskRevisionDocente" targetRef="Gateway_Aprobado" />
+    <bpmn:sequenceFlow id="Flow_Aprobado" name="Aprobado" sourceRef="Gateway_Aprobado" targetRef="taskNotificarAprobado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[${aprobado == true}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Rechazado" name="Rechazado" sourceRef="Gateway_Aprobado" targetRef="taskNotificarRechazado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[${aprobado == false}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NotificacionAprobado" sourceRef="taskNotificarAprobado" targetRef="Gateway_Convergencia" />
+    <bpmn:sequenceFlow id="Flow_NotificacionRechazado" sourceRef="taskNotificarRechazado" targetRef="Gateway_Convergencia" />
+    <bpmn:sequenceFlow id="Flow_Finalizar" sourceRef="Gateway_Convergencia" targetRef="taskFinalizar" />
+    <bpmn:sequenceFlow id="Flow_Fin" sourceRef="taskFinalizar" targetRef="EndEvent_Finalizado" />
+  </bpmn:process>
+  
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="procesoTramite">
+      <bpmndi:BPMNShape id="StartEvent_Inicio_di" bpmnElement="StartEvent_Inicio">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="ServiceTask_ActualizarEnRevision_di" bpmnElement="taskActualizarEnRevision">
+        <dc:Bounds x="270" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="UserTask_RevisionDocente_di" bpmnElement="taskRevisionDocente">
+        <dc:Bounds x="415" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_Aprobado_di" bpmnElement="Gateway_Aprobado">
+        <dc:Bounds x="560" y="92" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="ServiceTask_NotificarAprobado_di" bpmnElement="taskNotificarAprobado">
+        <dc:Bounds x="655" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="ServiceTask_NotificarRechazado_di" bpmnElement="taskNotificarRechazado">
+        <dc:Bounds x="655" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_Convergencia_di" bpmnElement="Gateway_Convergencia">
+        <dc:Bounds x="810" y="92" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="ServiceTask_Finalizar_di" bpmnElement="taskFinalizar">
+        <dc:Bounds x="905" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_Finalizado_di" bpmnElement="EndEvent_Finalizado">
+        <dc:Bounds x="1052" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_Inicio_di" bpmnElement="Flow_Inicio">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="270" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_RevisionDocente_di" bpmnElement="Flow_RevisionDocente">
+        <di:waypoint x="370" y="117" />
+        <di:waypoint x="415" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Evaluar_di" bpmnElement="Flow_Evaluar">
+        <di:waypoint x="515" y="117" />
+        <di:waypoint x="560" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Aprobado_di" bpmnElement="Flow_Aprobado">
+        <di:waypoint x="610" y="117" />
+        <di:waypoint x="655" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Rechazado_di" bpmnElement="Flow_Rechazado">
+        <di:waypoint x="585" y="142" />
+        <di:waypoint x="585" y="280" />
+        <di:waypoint x="705" y="280" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_NotificacionAprobado_di" bpmnElement="Flow_NotificacionAprobado">
+        <di:waypoint x="755" y="117" />
+        <di:waypoint x="810" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_NotificacionRechazado_di" bpmnElement="Flow_NotificacionRechazado">
+        <di:waypoint x="705" y="280" />
+        <di:waypoint x="835" y="280" />
+        <di:waypoint x="835" y="142" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Finalizar_di" bpmnElement="Flow_Finalizar">
+        <di:waypoint x="860" y="117" />
+        <di:waypoint x="905" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Fin_di" bpmnElement="Flow_Fin">
+        <di:waypoint x="1005" y="117" />
+        <di:waypoint x="1052" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
