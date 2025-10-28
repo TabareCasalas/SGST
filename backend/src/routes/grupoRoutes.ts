@@ -15,6 +15,9 @@ router.post('/', grupoController.create);
 // Ruta: PATCH /api/grupos/:id
 router.patch('/:id', grupoController.update);
 
+// Ruta: POST /api/grupos/:id/miembros
+router.post('/:id/miembros', grupoController.addMiembro);
+
 export default router;
 
 

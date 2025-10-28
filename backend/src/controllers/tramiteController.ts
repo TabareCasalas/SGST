@@ -132,28 +132,30 @@ export const tramiteController = {
         data: { estado: estadoInicial },
       });
 
-      // Iniciar proceso en Camunda
+      // Iniciar proceso en Camunda con el nuevo proceso de grupos
       try {
-        const processResult = await iniciarProcesoEnCamunda('procesoTramite', {
+        const processResult = await iniciarProcesoEnCamunda('procesoTramiteGrupos', {
           id_tramite: tramite.id_tramite,
           id_consultante: tramite.id_consultante,
           id_grupo: tramite.id_grupo,
+          grupoNombre: `grupo_${grupo.nombre}`,
           num_carpeta: tramite.num_carpeta,
           estado: estadoInicial,
           observaciones: tramite.observaciones || '',
-          validado: true, // Por defecto, asumimos que es válido
+          validado: true,
         });
 
         // Actualizar estado a "en_revision" después de iniciar el proceso
         await prisma.tramite.update({
           where: { id_tramite: tramite.id_tramite },
-          data: { 
-            estado: 'en_revision', // Cambia a en revisión después de iniciar
+          data: {
+            estado: 'en_revision',
             process_instance_id: processResult.instanceId,
           },
         });
 
-        console.log(`🚀 Proceso iniciado en Camunda: ${processResult.instanceId}`);
+        console.log(`🚀 Proceso iniciado en Camunda (procesoTramiteGrupos): ${processResult.instanceId}`);
+        console.log(`✅ Las tareas del BPMN están configuradas automáticamente con candidateGroup: grupo_${grupo.nombre}`);
       } catch (error: any) {
         console.error('⚠️  Error al iniciar proceso en Camunda:', error.message);
         // No fallamos la creación del trámite si Camunda falla
@@ -255,7 +257,7 @@ export const tramiteController = {
           { variables }
         );
 
-        // Actualizar el estado del trámite según la decisión
+        // Actualizar el estado del trámite según la decisión (temporal hasta que el proceso finalice)
         const nuevoEstado = aprobado ? 'aprobado' : 'rechazado';
         await prisma.tramite.update({
           where: { id_tramite: parseInt(id) },

@@ -9,6 +9,7 @@ import usuarioRoutes from './routes/usuarioRoutes';
 import grupoRoutes from './routes/grupoRoutes';
 import consultanteRoutes from './routes/consultanteRoutes';
 import notificacionRoutes from './routes/notificacionRoutes';
+import authRoutes from './routes/authRoutes';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+app.use('/api/auth', authRoutes); // Authentication routes (public)
 app.use('/api/tramites', tramiteRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/grupos', grupoRoutes);

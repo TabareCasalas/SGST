@@ -11,16 +11,23 @@ datasource db {
 }
 
 model Usuario {
-  id_usuario    Int      @id @default(autoincrement())
-  nombre        String
-  ci            String   @unique
-  domicilio     String
-  telefono      String
-  correo        String   @unique
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  id_usuario       Int             @id @default(autoincrement())
+  nombre           String
+  ci               String          @unique
+  domicilio        String
+  telefono         String
+  correo           String          @unique
+  password         String          // Contraseña hasheada con bcrypt
+  rol              String          @default("estudiante") // estudiante, docente_responsable, docente_asistente, consultante, administrador_docente, administrador_sistema, administrador_administrativo
+  activo           Boolean         @default(true)
+  semestre         String?         // Para estudiantes
+  refresh_token    String?         // Token JWT de refresco para sesiones persistentes
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
   
-  consultantes  Consultante[]
+  consultantes     Consultante[]
+  auditorias       Auditoria[]
+  grupos_participa UsuarioGrupo[]
 }
 
 model Consultante {
@@ -36,33 +43,50 @@ model Consultante {
 }
 
 model Grupo {
-  id_grupo    Int      @id @default(autoincrement())
-  nombre      String
-  descripcion String?
-  activo      Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id_grupo        Int             @id @default(autoincrement())
+  nombre          String
+  descripcion     String?
+  activo          Boolean         @default(true)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
   
-  tramites    Tramite[]
+  tramites        Tramite[]
+  miembros_grupo  UsuarioGrupo[]
+}
+
+model UsuarioGrupo {
+  id_usuario_grupo    Int       @id @default(autoincrement())
+  id_usuario          Int
+  id_grupo            Int
+  rol_en_grupo        String    // responsable, asistente, estudiante
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  
+  usuario             Usuario   @relation(fields: [id_usuario], references: [id_usuario])
+  grupo               Grupo     @relation(fields: [id_grupo], references: [id_grupo])
+  
+  @@unique([id_usuario, id_grupo])
+  @@index([id_grupo])
+  @@index([id_usuario])
 }
 
 model Tramite {
-  id_tramite    Int       @id @default(autoincrement())
-  id_consultante Int
-  id_grupo      Int
-  num_carpeta   Int       @unique
-  estado        String    @default("iniciado")
-  observaciones String?
-  fecha_inicio  DateTime  @default(now())
-  fecha_cierre  DateTime?
-  motivo_cierre String?
-  process_instance_id String? // ID de la instancia en Camunda
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  id_tramite         Int       @id @default(autoincrement())
+  id_consultante     Int
+  id_grupo           Int
+  num_carpeta        Int       @unique
+  estado             String    @default("pendiente_asignacion") // pendiente_asignacion, en_revision, requiere_correccion, aprobado, rechazado, finalizado, desistido
+  observaciones      String?
+  fecha_inicio       DateTime  @default(now())
+  fecha_cierre       DateTime?
+  motivo_cierre      String?
+  process_instance_id String?  // ID de la instancia en Camunda
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
   
-  consultante   Consultante @relation(fields: [id_consultante], references: [id_consultante])
-  grupo         Grupo       @relation(fields: [id_grupo], references: [id_grupo])
-  notificaciones Notificacion[]
+  consultante        Consultante @relation(fields: [id_consultante], references: [id_consultante])
+  grupo              Grupo       @relation(fields: [id_grupo], references: [id_grupo])
+  notificaciones     Notificacion[]
 }
 
 model Notificacion {
@@ -74,6 +98,19 @@ model Notificacion {
   created_at        DateTime  @default(now())
   
   tramite           Tramite  @relation(fields: [id_tramite], references: [id_tramite])
+}
+
+model Auditoria {
+  id_auditoria  Int      @id @default(autoincrement())
+  id_usuario    Int?
+  tipo_entidad  String   // 'usuario', 'tramite', 'grupo', etc.
+  id_entidad    Int?     // ID de la entidad modificada
+  accion        String   // 'crear', 'modificar', 'desactivar', etc.
+  detalles      String?  // Detalles del cambio
+  ip_address    String?
+  created_at    DateTime @default(now())
+  
+  usuario       Usuario? @relation(fields: [id_usuario], references: [id_usuario])
 }
 
 

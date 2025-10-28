@@ -6,6 +6,9 @@ const router = express.Router();
 // Ruta: GET /api/usuarios
 router.get('/', usuarioController.getAll);
 
+// Ruta: GET /api/usuarios/auditoria
+router.get('/auditoria', usuarioController.getAuditoria);
+
 // Ruta: GET /api/usuarios/:id
 router.get('/:id', usuarioController.getById);
 
@@ -15,6 +18,10 @@ router.post('/', usuarioController.create);
 // Ruta: PATCH /api/usuarios/:id
 router.patch('/:id', usuarioController.update);
 
+// Ruta: POST /api/usuarios/:id/desactivar
+router.post('/:id/desactivar', usuarioController.deactivate);
+
+// Ruta: POST /api/usuarios/:id/activar
+router.post('/:id/activar', usuarioController.activate);
+
 export default router;
-
-

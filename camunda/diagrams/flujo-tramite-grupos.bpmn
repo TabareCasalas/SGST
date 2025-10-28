@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_flujo_tramite_grupos" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="4.12.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.15.0">
+  <bpmn:process id="procesoTramiteGrupos" name="Proceso de Trámite con Grupos" isExecutable="true" camunda:historyTimeToLive="180">
+    <!-- Start Event: Inicio del trámite -->
+    <bpmn:startEvent id="StartEvent_Inicio" name="Inicio del Trámite">
+      <bpmn:outgoing>Flow_Inicio</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Service Task (External): Asignar grupo automáticamente -->
+    <bpmn:serviceTask id="taskAsignarGrupo" name="Asignar Grupo al Trámite" camunda:type="external" camunda:topic="asignar-grupo">
+      <bpmn:incoming>Flow_Inicio</bpmn:incoming>
+      <bpmn:outgoing>Flow_IniciarElaboracion</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- User Task: Elaboración - Estudiantes trabajan en el trámite -->
+    <bpmn:userTask id="taskElaboracion" name="Elaboración del Trámite" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:documentation>Los estudiantes pueden subir documentos y trabajar en el trámite</bpmn:documentation>
+      <bpmn:incoming>Flow_IniciarElaboracion</bpmn:incoming>
+      <bpmn:incoming>Flow_RegresarCorreccion</bpmn:incoming>
+      <bpmn:outgoing>Flow_PreparandoEntrega</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- User Task: Entrega Parcial - Estudiantes marcan entrega -->
+    <bpmn:userTask id="taskEntregaParcial" name="Entrega Parcial para Revisión" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:documentation>Los estudiantes marcan que han completado una entrega parcial</bpmn:documentation>
+      <bpmn:incoming>Flow_PreparandoEntrega</bpmn:incoming>
+      <bpmn:outgoing>Flow_SolicitarRevision</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- User Task: Revisión Docente - Docente responsable evalúa -->
+    <bpmn:userTask id="taskRevisionDocente" name="Revisión del Docente Responsable" camunda:candidateGroups="${grupoNombre}">
+      <bpmn:documentation>El docente responsable revisa el trabajo y toma una decisión</bpmn:documentation>
+      <bpmn:incoming>Flow_SolicitarRevision</bpmn:incoming>
+      <bpmn:outgoing>Flow_VerificarDecision</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Exclusive Gateway: Decisión del Docente -->
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="¿Decisión del Docente?">
+      <bpmn:incoming>Flow_VerificarDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Aprobado</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RequiereCorreccion</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Detenido</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Flujo APROBADO -->
+    <bpmn:serviceTask id="taskNotificarAprobacion" name="Notificar Aprobación" camunda:type="external" camunda:topic="enviar-notificacion">
+      <bpmn:documentation>Envía notificación de aprobación al consultante</bpmn:documentation>
+      <bpmn:incoming>Flow_Aprobado</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinalizarTramite</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Flujo REQUIERE CORRECCIÓN - Loop de vuelta a Elaboración -->
+    <bpmn:serviceTask id="taskNotificarCorreccion" name="Notificar Corrección Requerida" camunda:type="external" camunda:topic="enviar-notificacion">
+      <bpmn:documentation>Notifica al grupo que se requieren correcciones</bpmn:documentation>
+      <bpmn:incoming>Flow_RequiereCorreccion</bpmn:incoming>
+      <bpmn:outgoing>Flow_RegresarCorreccion</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Flujo DETENIDO - Pausa el proceso -->
+    <bpmn:serviceTask id="taskDetenerProceso" name="Detener Proceso Temporalmente" camunda:type="external" camunda:topic="actualizar-estado">
+      <bpmn:documentation>Pausa el proceso hasta que se reanu de manualmente</bpmn:documentation>
+      <bpmn:incoming>Flow_Detenido</bpmn:incoming>
+      <bpmn:outgoing>Flow_EsperarReanudacion</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Intermediate Catch Event: Esperar señal para reanudar -->
+    <bpmn:intermediateCatchEvent id="catchEventReanudar" name="Esperar Reanudación">
+      <bpmn:incoming>Flow_EsperarReanudacion</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReanudarAElaboracion</bpmn:outgoing>
+      <bpmn:signalEventDefinition signalRef="Signal_ReanudarProceso" />
+    </bpmn:intermediateCatchEvent>
+    
+    <!-- Signal Definition -->
+    <bpmn:signal id="Signal_ReanudarProceso" name="ReanudarProceso" />
+    
+    <!-- Service Task: Finalizar Trámite -->
+    <bpmn:serviceTask id="taskFinalizarTramite" name="Finalizar Trámite" camunda:type="external" camunda:topic="finalizar-tramite">
+      <bpmn:documentation>Actualiza el estado del trámite a finalizado y registra el evento en auditoría</bpmn:documentation>
+      <bpmn:incoming>Flow_FinalizarTramite</bpmn:incoming>
+      <bpmn:outgoing>Flow_CerrarProceso</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- End Event: Trámite Finalizado -->
+    <bpmn:endEvent id="EndEvent_Finalizado" name="Trámite Finalizado">
+      <bpmn:incoming>Flow_CerrarProceso</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_Inicio" sourceRef="StartEvent_Inicio" targetRef="taskAsignarGrupo" />
+    <bpmn:sequenceFlow id="Flow_IniciarElaboracion" sourceRef="taskAsignarGrupo" targetRef="taskElaboracion" />
+    <bpmn:sequenceFlow id="Flow_PreparandoEntrega" sourceRef="taskElaboracion" targetRef="taskEntregaParcial" />
+    <bpmn:sequenceFlow id="Flow_SolicitarRevision" sourceRef="taskEntregaParcial" targetRef="taskRevisionDocente" />
+    <bpmn:sequenceFlow id="Flow_VerificarDecision" sourceRef="taskRevisionDocente" targetRef="Gateway_Decision" />
+    
+    <!-- Decisiones del Gateway -->
+    <bpmn:sequenceFlow id="Flow_Aprobado" name="Aprobado" sourceRef="Gateway_Decision" targetRef="taskNotificarAprobacion">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[${decision == "aprobado"}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_RequiereCorreccion" name="Requiere Corrección" sourceRef="Gateway_Decision" targetRef="taskNotificarCorreccion">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[${decision == "requiere_correccion"}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_Detenido" name="Detenido" sourceRef="Gateway_Decision" targetRef="taskDetenerProceso">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[${decision == "detenido"}]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- Loop de corrección - Regresa a Elaboración -->
+    <bpmn:sequenceFlow id="Flow_RegresarCorreccion" name="Regresar a Elaboración" sourceRef="taskNotificarCorreccion" targetRef="taskElaboracion" />
+    
+    <!-- Reanudación desde proceso detenido -->
+    <bpmn:sequenceFlow id="Flow_EsperarReanudacion" sourceRef="taskDetenerProceso" targetRef="catchEventReanudar" />
+    <bpmn:sequenceFlow id="Flow_ReanudarAElaboracion" name="Reanudar" sourceRef="catchEventReanudar" targetRef="taskElaboracion" />
+    
+    <!-- Finalización -->
+    <bpmn:sequenceFlow id="Flow_FinalizarTramite" sourceRef="taskNotificarAprobacion" targetRef="taskFinalizarTramite" />
+    <bpmn:sequenceFlow id="Flow_CerrarProceso" sourceRef="taskFinalizarTramite" targetRef="EndEvent_Finalizado" />
+    
+  </bpmn:process>
+  
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="procesoTramiteGrupos">
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_Inicio_di" bpmnElement="StartEvent_Inicio">
+        <dc:Bounds x="152" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="139" y="142" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Asignar Grupo -->
+      <bpmndi:BPMNShape id="ServiceTask_AsignarGrupo_di" bpmnElement="taskAsignarGrupo">
+        <dc:Bounds x="240" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Elaboración -->
+      <bpmndi:BPMNShape id="UserTask_Elaboracion_di" bpmnElement="taskElaboracion">
+        <dc:Bounds x="390" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Entrega Parcial -->
+      <bpmndi:BPMNShape id="UserTask_EntregaParcial_di" bpmnElement="taskEntregaParcial">
+        <dc:Bounds x="540" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Revisión Docente -->
+      <bpmndi:BPMNShape id="UserTask_RevisionDocente_di" bpmnElement="taskRevisionDocente">
+        <dc:Bounds x="690" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Gateway de Decisión -->
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="845" y="92" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="839" y="62" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Notificar Aprobación -->
+      <bpmndi:BPMNShape id="ServiceTask_NotificarAprobacion_di" bpmnElement="taskNotificarAprobacion">
+        <dc:Bounds x="960" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Notificar Corrección -->
+      <bpmndi:BPMNShape id="ServiceTask_NotificarCorreccion_di" bpmnElement="taskNotificarCorreccion">
+        <dc:Bounds x="960" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Detener Proceso -->
+      <bpmndi:BPMNShape id="ServiceTask_DetenerProceso_di" bpmnElement="taskDetenerProceso">
+        <dc:Bounds x="960" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Catch Event Reanudar -->
+      <bpmndi:BPMNShape id="CatchEventReanudar_di" bpmnElement="catchEventReanudar">
+        <dc:Bounds x="1122" y="372" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1114" y="415" width="52" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Finalizar Trámite -->
+      <bpmndi:BPMNShape id="ServiceTask_FinalizarTramite_di" bpmnElement="taskFinalizarTramite">
+        <dc:Bounds x="1120" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_Finalizado_di" bpmnElement="EndEvent_Finalizado">
+        <dc:Bounds x="1282" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1269" y="142" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Edges / Flows -->
+      <bpmndi:BPMNEdge id="Flow_Inicio_di" bpmnElement="Flow_Inicio">
+        <di:waypoint x="188" y="117" />
+        <di:waypoint x="240" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_IniciarElaboracion_di" bpmnElement="Flow_IniciarElaboracion">
+        <di:waypoint x="340" y="117" />
+        <di:waypoint x="390" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_PreparandoEntrega_di" bpmnElement="Flow_PreparandoEntrega">
+        <di:waypoint x="490" y="117" />
+        <di:waypoint x="540" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_SolicitarRevision_di" bpmnElement="Flow_SolicitarRevision">
+        <di:waypoint x="640" y="117" />
+        <di:waypoint x="690" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_VerificarDecision_di" bpmnElement="Flow_VerificarDecision">
+        <di:waypoint x="790" y="117" />
+        <di:waypoint x="845" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <!-- Decisión: Aprobado -->
+      <bpmndi:BPMNEdge id="Flow_Aprobado_di" bpmnElement="Flow_Aprobado">
+        <di:waypoint x="895" y="117" />
+        <di:waypoint x="960" y="117" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="905" y="99" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <!-- Decisión: Requiere Corrección -->
+      <bpmndi:BPMNEdge id="Flow_RequiereCorreccion_di" bpmnElement="Flow_RequiereCorreccion">
+        <di:waypoint x="870" y="142" />
+        <di:waypoint x="870" y="240" />
+        <di:waypoint x="960" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="872" y="180" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <!-- Decisión: Detenido -->
+      <bpmndi:BPMNEdge id="Flow_Detenido_di" bpmnElement="Flow_Detenido">
+        <di:waypoint x="870" y="142" />
+        <di:waypoint x="870" y="390" />
+        <di:waypoint x="960" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="875" y="310" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <!-- Loop de Corrección -->
+      <bpmndi:BPMNEdge id="Flow_RegresarCorreccion_di" bpmnElement="Flow_RegresarCorreccion">
+        <di:waypoint x="1010" y="200" />
+        <di:waypoint x="1010" y="30" />
+        <di:waypoint x="440" y="30" />
+        <di:waypoint x="440" y="77" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="670" y="12" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <!-- Reanudación -->
+      <bpmndi:BPMNEdge id="Flow_EsperarReanudacion_di" bpmnElement="Flow_EsperarReanudacion">
+        <di:waypoint x="1060" y="390" />
+        <di:waypoint x="1122" y="390" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_ReanudarAElaboracion_di" bpmnElement="Flow_ReanudarAElaboracion">
+        <di:waypoint x="1140" y="372" />
+        <di:waypoint x="1140" y="310" />
+        <di:waypoint x="440" y="310" />
+        <di:waypoint x="440" y="157" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1100" y="333" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <!-- Finalización -->
+      <bpmndi:BPMNEdge id="Flow_FinalizarTramite_di" bpmnElement="Flow_FinalizarTramite">
+        <di:waypoint x="1060" y="117" />
+        <di:waypoint x="1120" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_CerrarProceso_di" bpmnElement="Flow_CerrarProceso">
+        <di:waypoint x="1220" y="117" />
+        <di:waypoint x="1282" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+

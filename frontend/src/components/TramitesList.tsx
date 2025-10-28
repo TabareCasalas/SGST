@@ -1,17 +1,29 @@
 import { useEffect, useState } from 'react';
 import { ApiService } from '../services/api';
 import type { Tramite } from '../types/tramite';
-import { TareaCard } from './TareaCard';
+import { RechazoModal } from './RechazoModal';
+import { useToast } from '../contexts/ToastContext';
+import { 
+  FaFileAlt, FaChevronDown, FaChevronUp, FaClock, FaCheckCircle, FaTimesCircle, 
+  FaUser, FaUsers, FaFolderOpen, FaCalendarAlt, FaTrash, FaCommentAlt, FaSync,
+  FaClipboardCheck
+} from 'react-icons/fa';
 import './TramitesList.css';
 
 export function TramitesList() {
   const [tramites, setTramites] = useState<Tramite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showTareas, setShowTareas] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [showRechazoModal, setShowRechazoModal] = useState(false);
+  const [tramiteRechazar, setTramiteRechazar] = useState<number | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadTramites();
+    // Auto-refresh cada 30 segundos
+    const interval = setInterval(loadTramites, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadTramites = async () => {
@@ -27,119 +39,270 @@ export function TramitesList() {
     }
   };
 
+  const toggleRow = (id: number) => {
+    const newExpanded = new Set(expandedRows);
+    if (expandedRows.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('¿Estás seguro de eliminar este trámite?')) return;
     
     try {
       await ApiService.deleteTramite(id);
       await loadTramites();
+      showToast('Trámite eliminado exitosamente', 'success');
     } catch (err: any) {
-      alert('Error al eliminar: ' + err.message);
+      showToast(`Error al eliminar: ${err.message}`, 'error');
     }
   };
 
   const handleCompletarTarea = async (id: number, aprobado: boolean) => {
+    if (!aprobado) {
+      setTramiteRechazar(id);
+      setShowRechazoModal(true);
+      return;
+    }
+    await ejecutarCompletar(id, true);
+  };
+
+  const handleConfirmarRechazo = async (razon: string) => {
+    if (tramiteRechazar) {
+      setShowRechazoModal(false);
+      await ejecutarCompletar(tramiteRechazar, false, razon);
+      setTramiteRechazar(null);
+    }
+  };
+
+  const ejecutarCompletar = async (id: number, aprobado: boolean, razon?: string) => {
     try {
-      await ApiService.completarTarea(id, aprobado);
-      await loadTramites(); // Recargar para ver cambios
-      alert(`Trámite ${aprobado ? 'aprobado' : 'rechazado'} exitosamente`);
+      await ApiService.completarTarea(id, aprobado, razon);
+      await loadTramites();
+      showToast(
+        `Trámite ${aprobado ? 'aprobado' : 'rechazado'} exitosamente`,
+        aprobado ? 'success' : 'info'
+      );
     } catch (err: any) {
-      alert('Error al completar tarea: ' + err.message);
+      showToast(`Error al completar tarea: ${err.message}`, 'error');
     }
   };
 
-  const getEstadoColor = (estado: string) => {
+  const getEstadoIcon = (estado: string) => {
     switch (estado) {
-      case 'iniciado': return 'blue';
-      case 'en_revision': return 'orange';
-      case 'aprobado': return 'green';
-      case 'rechazado': return 'red';
-      case 'finalizado': return 'gray';
-      default: return 'blue';
+      case 'iniciado': return <FaClock className="status-icon iniciado" />;
+      case 'en_revision': return <FaSync className="status-icon en-revision spin" />;
+      case 'aprobado': return <FaCheckCircle className="status-icon aprobado" />;
+      case 'rechazado': return <FaTimesCircle className="status-icon rechazado" />;
+      case 'cerrado': return <FaClipboardCheck className="status-icon cerrado" />;
+      default: return <FaFileAlt className="status-icon" />;
     }
   };
 
-  if (loading) return <div className="loading">Cargando trámites...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
+  const getEstadoLabel = (estado: string) => {
+    const labels: { [key: string]: string } = {
+      iniciado: 'Iniciado',
+      en_revision: 'En Revisión',
+      aprobado: 'Aprobado',
+      rechazado: 'Rechazado',
+      cerrado: 'Cerrado',
+    };
+    return labels[estado] || estado;
+  };
 
-  // Filtrar trámites en revisión (tareas pendientes)
-  const tareasPendientes = tramites.filter(t => t.estado === 'en_revision');
+  if (loading && tramites.length === 0) return <div className="loading">Cargando trámites...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
 
   return (
     <div className="tramites-container">
       <div className="tramites-header">
         <h2>📋 Lista de Trámites</h2>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {tareasPendientes.length > 0 && (
-            <button 
-              onClick={() => setShowTareas(!showTareas)} 
-              className={`nav-toggle ${showTareas ? 'active' : ''}`}
-            >
-              {showTareas ? '📋 Ver Todos' : `🔔 Tareas (${tareasPendientes.length})`}
-            </button>
-          )}
-          <button onClick={loadTramites} className="refresh-btn">🔄 Actualizar</button>
+        <div className="header-actions">
+          <button onClick={loadTramites} className="refresh-btn" title="Actualizar">
+            <FaSync /> Actualizar
+          </button>
         </div>
       </div>
 
-      {/* Mostrar tareas pendientes si está activo */}
-      {showTareas && tareasPendientes.length > 0 && (
-        <div className="tareas-pendientes">
-          <h3>🔄 Tareas Pendientes de Revisión</h3>
-          {tareasPendientes.map((tramite) => (
-            <TareaCard 
-              key={tramite.id_tramite} 
-              tramite={tramite} 
-              onCompletar={handleCompletarTarea}
-            />
-          ))}
-        </div>
-      )}
-
+      {/* Tabla */}
       {tramites.length === 0 ? (
         <div className="empty-state">
           <p>No hay trámites registrados</p>
         </div>
       ) : (
-        <div className="tramites-grid">
-          {tramites.map((tramite) => (
-            <div key={tramite.id_tramite} className="tramite-card">
-              <div className="tramite-header">
-                <h3>Trámite #{tramite.num_carpeta}</h3>
-                <span className={`estado-badge estado-${getEstadoColor(tramite.estado)}`}>
-                  {tramite.estado}
-                </span>
-              </div>
-
-              <div className="tramite-body">
-                <p><strong>ID:</strong> {tramite.id_tramite}</p>
-                {tramite.consultante?.usuario && (
-                  <p><strong>Consultante:</strong> {tramite.consultante.usuario.nombre}</p>
-                )}
-                {tramite.grupo && (
-                  <p><strong>Grupo:</strong> {tramite.grupo.nombre}</p>
-                )}
-                {tramite.observaciones && (
-                  <p><strong>Observaciones:</strong> {tramite.observaciones}</p>
-                )}
-                <p><strong>Fecha inicio:</strong> {new Date(tramite.fecha_inicio).toLocaleDateString()}</p>
-                {tramite.process_instance_id && (
-                  <p className="process-id">
-                    <strong>Proceso Camunda:</strong> {tramite.process_instance_id.slice(0, 20)}...
-                  </p>
-                )}
-              </div>
-
-              <div className="tramite-actions">
-                <button onClick={() => handleDelete(tramite.id_tramite)} className="delete-btn">
-                  🗑️ Eliminar
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="table-container">
+          <table className="tramites-table">
+            <thead>
+              <tr>
+                <th style={{ width: '40px' }}></th>
+                <th>Carpeta #</th>
+                <th>Consultante</th>
+                <th>Grupo</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tramites.map((tramite) => (
+                <>
+                  <tr 
+                    key={tramite.id_tramite} 
+                    className={`table-row ${tramite.estado === 'en_revision' ? 'highlight-row' : ''}`}
+                    onClick={() => toggleRow(tramite.id_tramite)}
+                  >
+                    <td className="expand-icon">
+                      {expandedRows.has(tramite.id_tramite) ? <FaChevronUp /> : <FaChevronDown />}
+                    </td>
+                    <td className="folder-number">
+                      <FaFolderOpen className="folder-icon" />
+                      <strong>{tramite.num_carpeta}</strong>
+                    </td>
+                    <td className="consultante-name">
+                      <FaUser />
+                      {tramite.consultante?.usuario?.nombre || 'N/A'}
+                    </td>
+                    <td>
+                      <FaUsers className="inline-icon" />
+                      {tramite.grupo?.nombre || 'N/A'}
+                    </td>
+                    <td>
+                      <div className="estado-badge-container">
+                        {getEstadoIcon(tramite.estado)}
+                        <span className={`estado-badge estado-${tramite.estado}`}>
+                          {getEstadoLabel(tramite.estado)}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <FaCalendarAlt className="inline-icon" />
+                      {new Date(tramite.fecha_inicio).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </td>
+                    <td className="action-buttons">
+                      {tramite.estado === 'en_revision' && (
+                        <div className="tarea-actions">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCompletarTarea(tramite.id_tramite, true);
+                            }}
+                            className="action-btn approve-btn"
+                            title="Aprobar trámite"
+                          >
+                            <FaCheckCircle /> Aprobar
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCompletarTarea(tramite.id_tramite, false);
+                            }}
+                            className="action-btn reject-btn"
+                            title="Rechazar trámite"
+                          >
+                            <FaTimesCircle /> Rechazar
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(tramite.id_tramite);
+                        }}
+                        className="action-btn delete-btn"
+                        title="Eliminar trámite"
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedRows.has(tramite.id_tramite) && (
+                    <tr className="expanded-content">
+                      <td colSpan={7}>
+                        <div className="details-grid">
+                          <div className="detail-item">
+                            <FaUser className="detail-icon" />
+                            <div>
+                              <strong>Consultante</strong>
+                              <p>{tramite.consultante?.usuario?.nombre || 'N/A'}</p>
+                              <small>CI: {tramite.consultante?.usuario?.ci || 'N/A'}</small>
+                            </div>
+                          </div>
+                          <div className="detail-item">
+                            <FaUsers className="detail-icon" />
+                            <div>
+                              <strong>Grupo</strong>
+                              <p>{tramite.grupo?.nombre || 'N/A'}</p>
+                              {tramite.grupo?.descripcion && (
+                                <small>{tramite.grupo.descripcion}</small>
+                              )}
+                            </div>
+                          </div>
+                          <div className="detail-item">
+                            <FaCalendarAlt className="detail-icon" />
+                            <div>
+                              <strong>Fecha de Inicio</strong>
+                              <p>{new Date(tramite.fecha_inicio).toLocaleString('es-ES')}</p>
+                            </div>
+                          </div>
+                          {tramite.fecha_cierre && (
+                            <div className="detail-item">
+                              <FaTimesCircle className="detail-icon" />
+                              <div>
+                                <strong>Fecha de Cierre</strong>
+                                <p>{new Date(tramite.fecha_cierre).toLocaleString('es-ES')}</p>
+                              </div>
+                            </div>
+                          )}
+                          {tramite.observaciones && (
+                            <div className="detail-item full-width">
+                              <FaCommentAlt className="detail-icon" />
+                              <div>
+                                <strong>Observaciones</strong>
+                                <p>{tramite.observaciones}</p>
+                              </div>
+                            </div>
+                          )}
+                          {tramite.motivo_cierre && (
+                            <div className="detail-item full-width">
+                              <FaCommentAlt className="detail-icon" />
+                              <div>
+                                <strong>Motivo de Cierre</strong>
+                                <p>{tramite.motivo_cierre}</p>
+                              </div>
+                            </div>
+                          )}
+                          {tramite.process_instance_id && (
+                            <div className="detail-item full-width">
+                              <strong>Proceso Camunda</strong>
+                              <p className="process-id">{tramite.process_instance_id}</p>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <RechazoModal
+        isOpen={showRechazoModal}
+        onClose={() => {
+          setShowRechazoModal(false);
+          setTramiteRechazar(null);
+        }}
+        onConfirm={handleConfirmarRechazo}
+      />
     </div>
   );
 }
-

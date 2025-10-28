@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import './NotificationBanner.css';
 
 interface Notification {
-  id: number;
+  id_notificacion: number;
   id_tramite: number;
   tipo_notificacion: string;
   mensaje: string;
@@ -26,12 +26,12 @@ export function NotificationBanner() {
       const response = await fetch('http://localhost:3001/api/notificaciones');
       if (response.ok) {
         const data = await response.json();
-        const unread = data.filter((n: Notification) => !n.enviado);
-        setNotifications(unread);
-        setShow(unread.length > 0);
+        // Mostrar todas las notificaciones, no filtrar por enviado
+        setNotifications(data);
+        setShow(data.length > 0);
       }
     } catch (error) {
-      // Silenciar errores si el endpoint no existe aún
+      console.error('Error cargando notificaciones:', error);
     }
   };
 
@@ -52,7 +52,7 @@ export function NotificationBanner() {
     <div className="notification-banner">
       {notifications.map(notification => (
         <div 
-          key={notification.id} 
+          key={notification.id_notificacion} 
           className={`notification-card ${notification.tipo_notificacion}`}
         >
           <div className="notification-content">
@@ -67,7 +67,7 @@ export function NotificationBanner() {
           </div>
           <button 
             className="notification-close"
-            onClick={() => markAsRead(notification.id)}
+            onClick={() => markAsRead(notification.id_notificacion)}
           >
             ✕
           </button>

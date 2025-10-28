@@ -198,8 +198,10 @@ async function checkExternalTasks(): Promise<void> {
       maxTasks: 10,
       usePriority: true,
       topics: [
+        { topicName: 'asignar-grupo', lockDuration: 60000 },
         { topicName: 'actualizar-estado', lockDuration: 60000 },
         { topicName: 'enviar-notificacion', lockDuration: 60000 },
+        { topicName: 'finalizar-tramite', lockDuration: 60000 },
       ],
     });
 
@@ -229,6 +231,9 @@ async function processExternalTask(task: Record<string, any>): Promise<void> {
 
   try {
     switch (topicName) {
+      case 'asignar-grupo':
+        await handleAsignarGrupo(task);
+        break;
       case 'crear-tramite':
         await handleCrearTramite(task);
         break;
@@ -238,6 +243,9 @@ async function processExternalTask(task: Record<string, any>): Promise<void> {
       case 'enviar-notificacion':
         await handleEnviarNotificacion(task);
         break;
+      case 'finalizar-tramite':
+        await handleFinalizarTramite(task);
+        break;
       default:
         logger.error(`❌ Tópico desconocido: ${topicName}`);
         await completeTask(task.id, {});
@@ -246,6 +254,33 @@ async function processExternalTask(task: Record<string, any>): Promise<void> {
     logger.error(`❌ Error al procesar tarea ${task.id}:`, error.message);
     await handleTaskFailure(task, error);
   }
+}
+
+/**
+ * Handler para asignar grupo
+ */
+async function handleAsignarGrupo(task: Record<string, any>): Promise<void> {
+  logger.info('👥 Procesando handler: asignar-grupo');
+  
+  const variables = extractVariables(task.variables);
+  const { id_tramite, id_grupo, grupo_nombre } = variables;
+
+  logger.info('📤 Variables recibidas:', { id_tramite, id_grupo, grupo_nombre });
+
+  try {
+    // Actualizar el grupo del trámite en el backend
+    await backendClient.patch(`/api/tramites/${id_tramite}`, {
+      id_grupo,
+      estado: 'asignado',
+    });
+
+    logger.info('✅ Grupo asignado exitosamente al trámite');
+  } catch (error) {
+    logger.error('❌ Error al asignar grupo al trámite:', error);
+  }
+
+  // Completar la tarea
+  await completeTask(task.id, {});
 }
 
 /**
@@ -274,17 +309,44 @@ async function handleActualizarEstado(task: Record<string, any>): Promise<void> 
   logger.info('🔄 Procesando handler: actualizar-estado');
 
   const variables = extractVariables(task.variables);
-  const { id_tramite, estado, observaciones } = variables;
+  const { id_tramite, estado, observaciones, aprobado } = variables;
 
-  logger.info('📤 Actualizando trámite:', { id_tramite, estado });
+  logger.info('📤 Variables recibidas:', { id_tramite, estado, aprobado });
 
-  // Llamar al backend para actualizar el estado
-  await backendClient.patch(`/api/tramites/${id_tramite}`, {
-    estado: estado || 'en_revision', // Por defecto en revisión si no se especifica
-    observaciones,
-  });
+  try {
+    // Obtener el estado actual del trámite desde el backend
+    const tramiteResponse = await backendClient.get(`/api/tramites/${id_tramite}`);
+    const estadoActual = tramiteResponse.data.estado;
 
-  logger.info('✅ Trámite actualizado exitosamente');
+    logger.info('📤 Estado actual del trámite:', estadoActual);
+
+    // Determinar el estado final
+    let estadoFinal = estado || 'en_revision';
+    
+    // Si el trámite ya fue aprobado o rechazado, establecer el estado final
+    if (estadoActual === 'aprobado') {
+      estadoFinal = 'finalizado';
+    } else if (estadoActual === 'rechazado') {
+      estadoFinal = 'desistido';
+    }
+
+    logger.info('📤 Actualizando trámite:', { id_tramite, estadoFinal });
+
+    // Llamar al backend para actualizar el estado
+    await backendClient.patch(`/api/tramites/${id_tramite}`, {
+      estado: estadoFinal,
+      observaciones,
+    });
+
+    logger.info('✅ Trámite actualizado exitosamente');
+  } catch (error) {
+    logger.error('❌ Error al obtener información del trámite:', error);
+    // Si falla, usar el estado por defecto
+    await backendClient.patch(`/api/tramites/${id_tramite}`, {
+      estado: estado || 'en_revision',
+      observaciones,
+    });
+  }
 
   // Completar la tarea
   await completeTask(task.id, {});
@@ -321,6 +383,33 @@ async function handleEnviarNotificacion(task: Record<string, any>): Promise<void
     logger.info('✅ Notificación enviada exitosamente');
   } catch (error) {
     logger.warn('⚠️  No se pudo enviar notificación (puede ser normal):', error);
+  }
+
+  // Completar la tarea
+  await completeTask(task.id, {});
+}
+
+/**
+ * Handler para finalizar trámite
+ */
+async function handleFinalizarTramite(task: Record<string, any>): Promise<void> {
+  logger.info('🏁 Procesando handler: finalizar-tramite');
+
+  const variables = extractVariables(task.variables);
+  const { id_tramite } = variables;
+
+  logger.info('📤 Finalizando trámite:', { id_tramite });
+
+  try {
+    // Actualizar el estado del trámite a "finalizado"
+    await backendClient.patch(`/api/tramites/${id_tramite}`, {
+      estado: 'finalizado',
+      fecha_cierre: new Date().toISOString(),
+    });
+
+    logger.info('✅ Trámite finalizado exitosamente');
+  } catch (error) {
+    logger.error('❌ Error al finalizar trámite:', error);
   }
 
   // Completar la tarea

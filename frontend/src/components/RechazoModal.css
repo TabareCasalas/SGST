@@ -1,0 +1,88 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  margin: 0 0 10px 0;
+  color: #dc3545;
+}
+
+.modal-content p {
+  margin: 0 0 20px 0;
+  color: #666;
+}
+
+.razon-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 20px;
+  font-family: inherit;
+}
+
+.razon-input:focus {
+  outline: none;
+  border-color: #dc3545;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-cancelar,
+.btn-rechazar-modal {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancelar {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-cancelar:hover {
+  background-color: #5a6268;
+}
+
+.btn-rechazar-modal {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-rechazar-modal:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.btn-rechazar-modal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

@@ -28,21 +28,21 @@
     <!-- Service Task (External): enviar-notificacion - Aprobado -->
     <bpmn:serviceTask id="taskNotificarAprobado" name="Notificar Aprobación" camunda:type="external" camunda:topic="enviar-notificacion">
       <bpmn:incoming>Flow_Aprobado</bpmn:incoming>
-      <bpmn:outgoing>Flow_Finalizar</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NotificacionAprobado</bpmn:outgoing>
     </bpmn:serviceTask>
     
     <!-- Service Task (External): enviar-notificacion - Rechazado -->
     <bpmn:serviceTask id="taskNotificarRechazado" name="Notificar Rechazo" camunda:type="external" camunda:topic="enviar-notificacion">
       <bpmn:incoming>Flow_Rechazado</bpmn:incoming>
-      <bpmn:outgoing>Flow_Finalizar</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NotificacionRechazado</bpmn:outgoing>
     </bpmn:serviceTask>
     
-    <!-- Gateway de convergencia (une ambas ramas) -->
-    <bpmn:parallelGateway id="Gateway_Convergencia" name="Convergencia">
+    <!-- Exclusive Gateway para convergencia (aunque solo una rama se ejecuta) -->
+    <bpmn:exclusiveGateway id="Gateway_Convergencia" name="Convergencia">
       <bpmn:incoming>Flow_NotificacionAprobado</bpmn:incoming>
       <bpmn:incoming>Flow_NotificacionRechazado</bpmn:incoming>
       <bpmn:outgoing>Flow_Finalizar</bpmn:outgoing>
-    </bpmn:parallelGateway>
+    </bpmn:exclusiveGateway>
     
     <!-- Service Task (External): actualizar-estado - Finalizar -->
     <bpmn:serviceTask id="taskFinalizar" name="Finalizar Trámite" camunda:type="external" camunda:topic="actualizar-estado">
