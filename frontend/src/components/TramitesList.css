@@ -152,6 +152,7 @@
 .tramites-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .tramites-table thead {
@@ -166,44 +167,50 @@
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.tramites-table th svg {
+  margin-right: 0.5rem;
+  vertical-align: middle;
 }
 
 /* Anchos específicos de columnas para mejor alineación */
 .tramites-table th:nth-child(1),
 .tramites-table td:nth-child(1) {
-  width: 50px; /* Expand icon */
+  width: 4%; /* Expand icon */
   text-align: center;
 }
 
 .tramites-table th:nth-child(2),
 .tramites-table td:nth-child(2) {
-  width: 120px; /* Carpeta # */
+  width: 12%; /* Carpeta # */
 }
 
 .tramites-table th:nth-child(3),
 .tramites-table td:nth-child(3) {
-  width: 200px; /* Consultante */
+  width: 20%; /* Consultante */
 }
 
 .tramites-table th:nth-child(4),
 .tramites-table td:nth-child(4) {
-  width: 180px; /* Grupo */
+  width: 15%; /* Grupo */
 }
 
 .tramites-table th:nth-child(5),
 .tramites-table td:nth-child(5) {
-  width: 160px; /* Estado */
+  width: 14%; /* Estado */
 }
 
 .tramites-table th:nth-child(6),
 .tramites-table td:nth-child(6) {
-  width: 140px; /* Fecha */
+  width: 12%; /* Fecha */
   white-space: nowrap;
 }
 
 .tramites-table th:nth-child(7),
 .tramites-table td:nth-child(7) {
-  min-width: 200px; /* Acciones */
+  width: 23%; /* Acciones */
   text-align: left;
 }
 
@@ -234,23 +241,16 @@
 }
 
 .folder-number {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.folder-icon {
+  font-size: 1.05rem;
   color: var(--primary-color);
-  font-size: 1.25rem;
 }
 
 .consultante-name {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inline-icon {

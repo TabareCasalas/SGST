@@ -26,6 +26,7 @@ export function CreateUsuarioForm({ onSuccess }: Props) {
     telefono: '',
     correo: '',
     rol: 'estudiante',
+    nivel_acceso: '',
     semestre: '',
     id_grupo: '',
   });
@@ -57,6 +58,11 @@ export function CreateUsuarioForm({ onSuccess }: Props) {
         rol: formData.rol,
       };
 
+      // Agregar nivel_acceso si es administrador
+      if (formData.rol === 'administrador' && formData.nivel_acceso) {
+        data.nivel_acceso = parseInt(formData.nivel_acceso);
+      }
+
       // Solo agregar semestre y grupo si es estudiante
       if (formData.rol === 'estudiante') {
         data.semestre = formData.semestre;
@@ -74,6 +80,7 @@ export function CreateUsuarioForm({ onSuccess }: Props) {
         telefono: '',
         correo: '',
         rol: 'estudiante',
+        nivel_acceso: '',
         semestre: '',
         id_grupo: '',
       });
@@ -165,20 +172,34 @@ export function CreateUsuarioForm({ onSuccess }: Props) {
           <select
             id="rol"
             value={formData.rol}
-            onChange={(e) => setFormData({ ...formData, rol: e.target.value, semestre: '', id_grupo: '' })}
+            onChange={(e) => setFormData({ ...formData, rol: e.target.value, semestre: '', id_grupo: '', nivel_acceso: '' })}
             required
             disabled={loading}
           >
             <option value="estudiante">👨‍🎓 Estudiante</option>
             <option value="docente">👨‍🏫 Docente</option>
-            <option value="docente_responsable">👨‍🏫 Docente Responsable</option>
-            <option value="docente_asistente">👨‍🏫 Docente Asistente</option>
             <option value="consultante">👤 Consultante</option>
-            <option value="administrador_docente">👨‍💼 Administrador Docente</option>
-            <option value="administrador_sistema">👨‍💼 Administrador Sistema</option>
-            <option value="administrador_administrativo">👨‍💼 Administrador Administrativo</option>
+            <option value="administrador">👨‍💼 Administrador</option>
           </select>
         </div>
+
+        {formData.rol === 'administrador' && (
+          <div className="form-group">
+            <label htmlFor="nivel_acceso">Nivel de Acceso *</label>
+            <select
+              id="nivel_acceso"
+              value={formData.nivel_acceso}
+              onChange={(e) => setFormData({ ...formData, nivel_acceso: e.target.value })}
+              required
+              disabled={loading}
+            >
+              <option value="">Seleccionar nivel</option>
+              <option value="3">Nivel 3 - Administrador del Sistema</option>
+              <option value="2">Nivel 2 - Administrador Docente</option>
+              <option value="1">Nivel 1 - Administrador Administrativo</option>
+            </select>
+          </div>
+        )}
 
         {formData.rol === 'estudiante' && (
           <>

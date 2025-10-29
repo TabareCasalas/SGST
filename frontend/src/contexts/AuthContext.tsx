@@ -1,99 +1,144 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
-import { ApiService } from '../services/api';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-interface User {
+export type UserRole = 'admin' | 'docente' | 'estudiante' | 'consultante';
+
+export interface AuthUser {
   id_usuario: number;
-  ci: string;
   nombre: string;
+  ci: string;
   correo: string;
-  rol: string;
+  rol: UserRole;
+  nivel_acceso?: number; // 1=admin_administrativo, 2=admin_docente, 3=admin_sistema
   activo: boolean;
+  semestre?: string;
+  id_grupo?: number;
+  grupo?: {
+    nombre: string;
+  };
+  grupos_participa?: Array<{
+    id_grupo: number;
+    rol_en_grupo: string;
+    grupo: {
+      id_grupo: number;
+      nombre: string;
+    };
+  }>;
 }
 
 interface AuthContextType {
-  user: User | null;
-  accessToken: string | null;
-  login: (ci: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  user: AuthUser | null;
+  login: (ci: string, password?: string) => Promise<void>;
+  logout: () => void;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  hasRole: (roles: UserRole | UserRole[]) => boolean;
+  hasAccessLevel: (minLevel: number) => boolean;
+  isAdminSistema: () => boolean;
+  isAdminDocente: () => boolean;
+  isAdminAdministrativo: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Al iniciar, verificar si hay token guardado
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      setAccessToken(token);
-      // Obtener datos del usuario actual
-      fetchCurrentUser();
-    } else {
-      setIsLoading(false);
+    // Verificar si hay sesión guardada
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch (error) {
+        localStorage.removeItem('user');
+      }
     }
   }, []);
 
-  const fetchCurrentUser = async () => {
+  const login = async (ci: string, _password?: string) => {
     try {
-      const userData = await ApiService.getCurrentUser();
-      setUser(userData);
+      // Por ahora, simulamos login con CI
+      // TODO: Implementar autenticación real con backend
+      const response = await fetch(`http://localhost:3001/api/usuarios?search=${ci}`);
+      if (!response.ok) throw new Error('Error al buscar usuario');
+      
+      const usuarios = await response.json();
+      const foundUser = usuarios.find((u: any) => u.ci === ci);
+      
+      if (!foundUser) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      if (!foundUser.activo) {
+        throw new Error('Usuario inactivo');
+      }
+
+      // Mapear rol del usuario
+      const authUser: AuthUser = {
+        id_usuario: foundUser.id_usuario,
+        nombre: foundUser.nombre,
+        ci: foundUser.ci,
+        correo: foundUser.correo,
+        rol: mapRolToUserRole(foundUser.rol),
+        nivel_acceso: foundUser.nivel_acceso || undefined,
+        activo: foundUser.activo,
+        semestre: foundUser.semestre,
+        id_grupo: foundUser.id_grupo,
+        grupo: foundUser.grupo,
+        grupos_participa: foundUser.grupos_participa || [],
+      };
+
+      setUser(authUser);
+      setIsAuthenticated(true);
+      localStorage.setItem('user', JSON.stringify(authUser));
     } catch (error) {
-      console.error('Error al obtener usuario actual:', error);
-      // Si falla, limpiar tokens
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      setAccessToken(null);
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
-  const login = async (ci: string, password: string) => {
-    try {
-      const response = await ApiService.login(ci, password);
-      
-      // Guardar tokens
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      
-      setAccessToken(response.accessToken);
-      setUser(response.usuario);
-    } catch (error: any) {
-      throw new Error(error.message || 'Error al iniciar sesión');
-    }
+  const logout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('user');
   };
 
-  const logout = async () => {
-    try {
-      await ApiService.logout();
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    } finally {
-      // Limpiar estado local
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      setAccessToken(null);
-      setUser(null);
-    }
+  const hasRole = (roles: UserRole | UserRole[]): boolean => {
+    if (!user) return false;
+    const roleArray = Array.isArray(roles) ? roles : [roles];
+    return roleArray.includes(user.rol);
+  };
+
+  const hasAccessLevel = (minLevel: number): boolean => {
+    if (!user || user.rol !== 'admin') return false;
+    return (user.nivel_acceso || 0) >= minLevel;
+  };
+
+  const isAdminSistema = (): boolean => {
+    return user?.rol === 'admin' && user?.nivel_acceso === 3;
+  };
+
+  const isAdminDocente = (): boolean => {
+    return user?.rol === 'admin' && user?.nivel_acceso === 2;
+  };
+
+  const isAdminAdministrativo = (): boolean => {
+    return user?.rol === 'admin' && user?.nivel_acceso === 1;
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        accessToken,
-        login,
-        logout,
-        isAuthenticated: !!user,
-        isLoading,
-      }}
-    >
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      isAuthenticated, 
+      hasRole, 
+      hasAccessLevel,
+      isAdminSistema,
+      isAdminDocente,
+      isAdminAdministrativo
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -107,3 +152,18 @@ export function useAuth() {
   return context;
 }
 
+// Helper para mapear roles del backend a roles de la app
+function mapRolToUserRole(rol: string): UserRole {
+  switch (rol) {
+    case 'administrador':
+      return 'admin';
+    case 'docente':
+      return 'docente';
+    case 'estudiante':
+      return 'estudiante';
+    case 'consultante':
+      return 'consultante';
+    default:
+      return 'consultante';
+  }
+}

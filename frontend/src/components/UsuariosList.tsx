@@ -12,6 +12,7 @@ interface Usuario {
   telefono: string;
   correo: string;
   rol: string;
+  nivel_acceso?: number;
   activo: boolean;
   semestre?: string;
   id_grupo?: number;
@@ -38,7 +39,7 @@ export function UsuariosList() {
     loadUsuarios();
     // Auto-refresh cada 30 segundos
     const interval = setInterval(loadUsuarios, 30000);
-    return () => clearInterval(interval);
+    return () => clearInterval(interval); // Recargar cuando cambian los filtros
   }, [filters]);
 
   const loadUsuarios = async () => {
@@ -109,6 +110,18 @@ export function UsuariosList() {
       case 'consultante': return 'consultante';
       default: return 'default';
     }
+  };
+
+  const getRolLabel = (rol: string, nivel_acceso?: number) => {
+    if (rol === 'administrador') {
+      switch (nivel_acceso) {
+        case 3: return 'Admin. Sistema';
+        case 2: return 'Admin. Docente';
+        case 1: return 'Admin. Administrativo';
+        default: return 'Administrador';
+      }
+    }
+    return rol.charAt(0).toUpperCase() + rol.slice(1);
   };
 
   if (loading && usuarios.length === 0) return <div className="loading">Cargando usuarios...</div>;
@@ -225,7 +238,7 @@ export function UsuariosList() {
                     </td>
                     <td>
                       <span className={`rol-badge rol-${getRolColor(usuario.rol)}`}>
-                        {usuario.rol}
+                        {getRolLabel(usuario.rol, usuario.nivel_acceso)}
                       </span>
                     </td>
                     <td>{usuario.ci}</td>

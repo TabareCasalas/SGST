@@ -37,6 +37,11 @@ export const authController = {
         return res.status(403).json({ error: 'Usuario inactivo' });
       }
 
+      // Verificar que el usuario tenga contraseña configurada
+      if (!usuario.password) {
+        return res.status(401).json({ error: 'Usuario sin contraseña configurada' });
+      }
+
       // Verificar contraseña
       const passwordMatch = await bcrypt.compare(password, usuario.password);
 

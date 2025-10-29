@@ -3,6 +3,7 @@ import { ApiService } from '../services/api';
 import type { Tramite } from '../types/tramite';
 import { RechazoModal } from './RechazoModal';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   FaFileAlt, FaChevronDown, FaChevronUp, FaClock, FaCheckCircle, FaTimesCircle, 
   FaUser, FaUsers, FaFolderOpen, FaCalendarAlt, FaTrash, FaCommentAlt, FaSync,
@@ -18,18 +19,35 @@ export function TramitesList() {
   const [showRechazoModal, setShowRechazoModal] = useState(false);
   const [tramiteRechazar, setTramiteRechazar] = useState<number | null>(null);
   const { showToast } = useToast();
+  const { user, hasRole, hasAccessLevel } = useAuth();
 
   useEffect(() => {
     loadTramites();
     // Auto-refresh cada 30 segundos
     const interval = setInterval(loadTramites, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]); // Recargar cuando cambia el usuario
 
   const loadTramites = async () => {
     try {
       setLoading(true);
-      const data = await ApiService.getTramites();
+      let data = await ApiService.getTramites();
+      
+      // Filtrar según rol
+      if (hasRole('estudiante') && user?.grupos_participa) {
+        // Estudiantes solo ven trámites de sus grupos asignados
+        const gruposIds = user.grupos_participa.map(gp => gp.id_grupo);
+        data = data.filter((t: Tramite) => gruposIds.includes(t.id_grupo));
+      } else if (hasRole('consultante')) {
+        // Consultantes solo ven sus propios trámites
+        data = data.filter((t: Tramite) => t.consultante?.id_usuario === user?.id_usuario);
+      } else if (hasRole('docente') && user?.grupos_participa) {
+        // Docentes ven trámites de los grupos donde participan
+        const gruposIds = user.grupos_participa.map(gp => gp.id_grupo);
+        data = data.filter((t: Tramite) => gruposIds.includes(t.id_grupo));
+      }
+      // Admin ve todos los trámites
+      
       setTramites(data);
       setError(null);
     } catch (err: any) {
@@ -137,12 +155,12 @@ export function TramitesList() {
           <table className="tramites-table">
             <thead>
               <tr>
-                <th style={{ width: '40px' }}></th>
-                <th>Carpeta #</th>
-                <th>Consultante</th>
-                <th>Grupo</th>
-                <th>Estado</th>
-                <th>Fecha</th>
+                <th></th>
+                <th><FaFolderOpen /> Carpeta #</th>
+                <th><FaUser /> Consultante</th>
+                <th><FaUsers /> Grupo</th>
+                <th><FaClipboardCheck /> Estado</th>
+                <th><FaCalendarAlt /> Fecha</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -158,15 +176,12 @@ export function TramitesList() {
                       {expandedRows.has(tramite.id_tramite) ? <FaChevronUp /> : <FaChevronDown />}
                     </td>
                     <td className="folder-number">
-                      <FaFolderOpen className="folder-icon" />
                       <strong>{tramite.num_carpeta}</strong>
                     </td>
                     <td className="consultante-name">
-                      <FaUser />
                       {tramite.consultante?.usuario?.nombre || 'N/A'}
                     </td>
                     <td>
-                      <FaUsers className="inline-icon" />
                       {tramite.grupo?.nombre || 'N/A'}
                     </td>
                     <td>
@@ -178,7 +193,6 @@ export function TramitesList() {
                       </div>
                     </td>
                     <td>
-                      <FaCalendarAlt className="inline-icon" />
                       {new Date(tramite.fecha_inicio).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: 'short',
@@ -186,7 +200,13 @@ export function TramitesList() {
                       })}
                     </td>
                     <td className="action-buttons">
+                      {/* Solo docentes responsables y admins docente/sistema pueden aprobar/rechazar */}
                       {tramite.estado === 'en_revision' && (
+                        (hasRole('admin') && hasAccessLevel(2)) || 
+                        (hasRole('docente') && user?.grupos_participa?.some(
+                          gp => gp.id_grupo === tramite.id_grupo && gp.rol_en_grupo === 'responsable'
+                        ))
+                      ) && (
                         <div className="tarea-actions">
                           <button
                             onClick={(e) => {
@@ -210,16 +230,19 @@ export function TramitesList() {
                           </button>
                         </div>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(tramite.id_tramite);
-                        }}
-                        className="action-btn delete-btn"
-                        title="Eliminar trámite"
-                      >
-                        <FaTrash />
-                      </button>
+                      {/* Solo admin sistema y admin docente pueden eliminar */}
+                      {hasRole('admin') && hasAccessLevel(2) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(tramite.id_tramite);
+                          }}
+                          className="action-btn delete-btn"
+                          title="Eliminar trámite"
+                        >
+                          <FaTrash />
+                        </button>
+                      )}
                     </td>
                   </tr>
                   {expandedRows.has(tramite.id_tramite) && (

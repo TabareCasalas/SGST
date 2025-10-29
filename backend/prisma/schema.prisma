@@ -17,8 +17,9 @@ model Usuario {
   domicilio        String
   telefono         String
   correo           String          @unique
-  password         String          // Contraseña hasheada con bcrypt
-  rol              String          @default("estudiante") // estudiante, docente_responsable, docente_asistente, consultante, administrador_docente, administrador_sistema, administrador_administrativo
+  password         String?         // Contraseña hasheada con bcrypt (opcional por ahora)
+  rol              String          @default("estudiante") // estudiante, docente, consultante, administrador
+  nivel_acceso     Int?            // Para administradores: 1=administrativo, 2=docente, 3=sistema (null para otros roles)
   activo           Boolean         @default(true)
   semestre         String?         // Para estudiantes
   refresh_token    String?         // Token JWT de refresco para sesiones persistentes

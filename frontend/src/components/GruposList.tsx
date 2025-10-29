@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import './GruposList.css';
 
 interface UsuarioGrupo {
@@ -28,15 +29,24 @@ export function GruposList() {
   const [loading, setLoading] = useState(true);
   const [selectedGrupo, setSelectedGrupo] = useState<Grupo | null>(null);
   const { showToast } = useToast();
+  const { user, hasRole } = useAuth();
 
   useEffect(() => {
     loadGrupos();
-  }, []);
+  }, [user]); // Recargar cuando cambia el usuario
 
   const loadGrupos = async () => {
     try {
       setLoading(true);
-      const data = await ApiService.getGrupos();
+      let data = await ApiService.getGrupos();
+      
+      // Si es docente, filtrar solo grupos donde participa
+      if (hasRole('docente') && user?.grupos_participa) {
+        const gruposIds = user.grupos_participa.map(gp => gp.id_grupo);
+        data = data.filter((g: Grupo) => gruposIds.includes(g.id_grupo));
+      }
+      // Admins ven todos los grupos
+      
       setGrupos(data);
     } catch (err: any) {
       showToast(`Error: ${err.message}`, 'error');

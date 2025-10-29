@@ -33,11 +33,10 @@ export function CreateGrupoForm({ onSuccess }: Props) {
 
   const loadDocentes = async () => {
     try {
-      // Cargar todos los usuarios y filtrar por roles de docente
+      // Cargar todos los usuarios y filtrar por rol docente
       const allUsers = await ApiService.getUsuarios();
-      const docenteRoles = ['docente', 'docente_responsable', 'docente_asistente'];
       const docentesList = allUsers.filter((u: Usuario) => 
-        docenteRoles.includes(u.rol) && u.activo !== false
+        u.rol === 'docente' && u.activo !== false
       );
       setDocentes(docentesList);
     } catch (err) {
