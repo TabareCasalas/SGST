@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 version: '3.8'
 
 services:
@@ -76,5 +77,18 @@ networks:
 
 
 
+=======
+# Docker Compose para desarrollo local
+# Este archivo excluye frontend y backend para correrlos localmente
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  frontend:
+    profiles:
+      - exclude  # Excluir este servicio
+  backend:
+    profiles:
+      - exclude  # Excluir este servicio
+>>>>>>> Stashed changes
 
 

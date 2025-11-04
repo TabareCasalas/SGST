@@ -34,6 +34,7 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER:-sgst_user}:${POSTGRES_PASSWORD:-sgst_password}@postgres:5432/${POSTGRES_DB:-sgst_db}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      REFRESH_SECRET: ${REFRESH_SECRET:-your-refresh-secret-change-this-in-production}
       PORT: 3001
     ports:
       - "${BACKEND_PORT:-3001}:3001"
