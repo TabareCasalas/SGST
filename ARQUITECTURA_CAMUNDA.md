@@ -121,7 +121,7 @@ Las external tasks permiten:
 - **Librería**: camunda-external-task-client-js
 
 ### 3. Backend API
-- **Función**: Lógica de negocio y persistencia
+- **Función**: Lógica de negocio y persistencia (comandos pasan primero por Camunda)
 - **Puerto**: 3001
 - **Tecnología**: Node.js + Express + Prisma
 
@@ -134,9 +134,15 @@ Las external tasks permiten:
 
 | Topic | Handler | Descripción |
 |-------|---------|-------------|
-| `crear-tramite` | createTramite | Crea un trámite en el backend |
-| `actualizar-estado` | updateEstado | Actualiza el estado de un trámite |
+| `crear-tramite` | createTramite | Crea un trámite en el backend y devuelve `id_tramite` al proceso |
+| `actualizar-estado` | updateEstado | Actualiza el estado de un trámite (solo llamadas internas desde Camunda) |
 | `enviar-notificacion` | sendNotification | Envía notificaciones al usuario |
+
+### Despliegue de diagramas
+
+- Todos los archivos `.bpmn`, `.dmn` o `.cmmn` ubicados en `camunda/diagrams/` se copian automáticamente dentro del contenedor en `/camunda/configuration/resources` al iniciar Camunda.
+- Cualquier cambio en un diagrama requiere reiniciar el contenedor `camunda` para que se despliegue la versión actualizada.
+- Este montaje funciona tanto en `docker-compose.yml` como en `docker-compose.dev.yml`, por lo que el mismo directorio local se usa en todos los entornos.
 
 ## Beneficios de esta Arquitectura
 
@@ -156,6 +162,45 @@ Las external tasks permiten:
 4. **Testing**
    - Cada componente se puede testear independientemente
    - Orchestrator mockeable para tests
+
+## Endpoints expuestos por el Orchestrator
+
+| Endpoint | Descripción |
+|----------|-------------|
+| `POST /api/procesos/iniciar` | Inicia un proceso vía message start (`inicio_tramite_grupo`) con variables iniciales (usa `processKey` y `messageName`). |
+| `POST /api/procesos/:instanceId/mensajes/:messageName` | Correlaciona eventos de mensaje (`to_pendiente`, `to_finalizado`, etc.) con variables opcionales. |
+| `POST /api/procesos/:instanceId/tareas/:taskId/completar` | Completa una user task específica. |
+| `POST /api/procesos/:instanceId/completar-tarea` | Completa automáticamente la última tarea activa cuando no se conoce el `taskId` (compatibilidad). |
+| `POST /api/procesos/:instanceId/variables` | Actualiza variables de proceso (`modifications`). |
+| `GET /health` | Health check del orchestrator. |
+
+> **Seguridad:** todas las llamadas internas del orchestrator hacia el backend incluyen la cabecera `x-orchestrator-token`. Configurar `ORCHESTRATOR_TOKEN` en backend y orchestrator para validar el origen de los requests internos.
+
+## Flujo Camunda-first (resumen)
+
+1. **Solicitud de creación**
+   - Frontend envía `POST /api/tramites` → Backend valida y dispara `POST /api/procesos/iniciar` al orchestrator.
+   - Camunda arranca `procesoTramiteGrupos`, ejecuta `crear-tramite` (external task) que persiste la entidad y devuelve `id_tramite`.
+   - Inmediatamente Camunda llama a `actualizar-estado` para fijar `en_tramite` o `pendiente` según variables de inicio.
+
+2. **Transiciones de estado**
+   - Cualquier cambio de estado solicitado por la UI o backend se convierte en un `POST /api/procesos/:instanceId/mensajes/:messageName`.
+   - Camunda decide la transición, ejecuta `actualizar-estado` y `enviar-notificacion`.
+
+3. **Eventos operativos**
+   - Acciones como actualizar hoja de ruta o subir documentos disparan mensajes (`actualizar_hoja_ruta`, `subir_archivo`) que activan event subprocess en Camunda y las tareas correspondientes en SGST.
+
+4. **Cierre de proceso**
+   - Al finalizar (`to_finalizado`/`to_desistido`) Camunda notifica, ejecuta tareas finales y espera `cerrar_tramite` para terminar definitivamente la instancia.
+
+## Variables relevantes del proceso
+
+- `id_consultante`, `id_grupo`, `num_carpeta`, `observaciones`
+- `grupoNombre` (formato `grupo_<nombre>` para mapear a Camunda Tasklist)
+- `estadoInicial`
+- `id_tramite` (seteado por la task `crear-tramite`)
+- `process_instance_id` (persistido en la tabla `tramite`)
+- `userId`, `rol_creador` (opcional, usado para auditoría)
 
 ## Cómo Usar
 

@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'your-refresh-secret-change-in-production';
-const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutos
+const ACCESS_TOKEN_EXPIRY = '8h'; // 8 horas (más extenso que 2 horas como solicitado)
 const REFRESH_TOKEN_EXPIRY = '7d'; // 7 días
 
 // Mapeo de tokens de refresco (en producción usar Redis)

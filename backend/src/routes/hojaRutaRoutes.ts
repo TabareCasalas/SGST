@@ -21,3 +21,13 @@ router.delete('/:id', hojaRutaController.delete);
 
 export default router;
 
+
+
+
+
+
+
+
+
+
+

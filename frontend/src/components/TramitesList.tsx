@@ -7,10 +7,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   FaFileAlt, FaChevronDown, FaChevronUp, FaClock, FaCheckCircle, FaTimesCircle, 
   FaUser, FaUsers, FaFolderOpen, FaCalendarAlt, FaTrash, FaCommentAlt, FaSync,
-  FaClipboardCheck, FaRoute, FaPaperclip
+  FaClipboardCheck, FaRoute, FaPaperclip, FaSearch, FaTimes, FaPlus
 } from 'react-icons/fa';
 import { HojaRutaModal } from './HojaRutaModal';
 import { DocumentosModal } from './DocumentosModal';
+import { CambiarEstadoTramiteModal } from './CambiarEstadoTramiteModal';
 import './TramitesList.css';
 
 export function TramitesList() {
@@ -18,6 +19,9 @@ export function TramitesList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'mis' | 'otras' | 'todas'>('mis');
   const [showRechazoModal, setShowRechazoModal] = useState(false);
   const [tramiteRechazar, setTramiteRechazar] = useState<number | null>(null);
   const [showConsultanteModal, setShowConsultanteModal] = useState(false);
@@ -27,20 +31,39 @@ export function TramitesList() {
   const [tramiteHojaRuta, setTramiteHojaRuta] = useState<number | null>(null);
   const [showDocumentosModal, setShowDocumentosModal] = useState(false);
   const [tramiteDocumentos, setTramiteDocumentos] = useState<number | null>(null);
+  const [showCambiarEstadoModal, setShowCambiarEstadoModal] = useState(false);
+  const [tramiteCambiarEstado, setTramiteCambiarEstado] = useState<Tramite | null>(null);
   const { showToast } = useToast();
   const { user, hasRole, hasAccessLevel } = useAuth();
 
+  // Debounce del término de búsqueda
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Esperar 500ms después de que el usuario deje de escribir
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Cargar trámites cuando cambia el usuario, el término de búsqueda con debounce o la pestaña
   useEffect(() => {
     loadTramites();
     // Auto-refresh cada 30 segundos
     const interval = setInterval(loadTramites, 30000);
     return () => clearInterval(interval);
-  }, [user]); // Recargar cuando cambia el usuario
+  }, [user, debouncedSearchTerm, activeTab]); // Recargar cuando cambia el usuario, el término de búsqueda con debounce o la pestaña
 
   const loadTramites = async () => {
     try {
       setLoading(true);
-      let data = await ApiService.getTramites();
+      
+      // Preparar filtros
+      const filters: any = {};
+      if (debouncedSearchTerm && debouncedSearchTerm.trim() !== '') {
+        filters.search = debouncedSearchTerm.trim();
+      }
+      
+      let data = await ApiService.getTramites(filters);
       
       // Filtrar según rol
       if (hasRole('estudiante') && user?.grupos_participa) {
@@ -50,12 +73,103 @@ export function TramitesList() {
       } else if (hasRole('consultante')) {
         // Consultantes solo ven sus propios trámites
         data = data.filter((t: Tramite) => t.consultante?.id_usuario === user?.id_usuario);
-      } else if (hasRole('docente') && user?.grupos_participa) {
-        // Docentes ven trámites de los grupos donde participan
-        const gruposIds = user.grupos_participa.map(gp => gp.id_grupo);
-        data = data.filter((t: Tramite) => gruposIds.includes(t.id_grupo));
+      } else if (hasRole('docente') && user?.id_usuario) {
+        // Docentes ven trámites según la pestaña seleccionada
+        const gruposIds = user.grupos_participa?.map(gp => gp.id_grupo) || [];
+        
+        if (activeTab === 'mis') {
+          // Mis trámites:
+          // 1. Trámites en_tramite de los grupos donde participan
+          // 2. Trámites iniciados desde fichas asignadas a ellos
+          
+          // Obtener fichas asignadas al docente que están iniciadas
+          let fichasDocente: any[] = [];
+          try {
+            fichasDocente = await ApiService.getFichas({ 
+              id_docente: user.id_usuario 
+            });
+            // Filtrar solo fichas iniciadas (que tienen trámite asociado)
+            fichasDocente = fichasDocente.filter((f: any) => f.estado === 'iniciada');
+          } catch (err) {
+            console.error('Error al cargar fichas del docente:', err);
+          }
+          
+          // Extraer consultantes y grupos de las fichas iniciadas
+          const consultantesFichas = new Set(fichasDocente.map((f: any) => f.id_consultante));
+          const gruposFichas = new Set(fichasDocente.map((f: any) => f.id_grupo).filter((g: any) => g != null));
+          
+          // Filtrar trámites:
+          // - Trámites aprobados de grupos donde participa el docente
+          // - Trámites que coinciden con consultante y grupo de fichas iniciadas asignadas al docente
+          data = data.filter((t: Tramite) => {
+            // Trámites en_tramite de grupos donde participa
+            if (gruposIds.includes(t.id_grupo) && t.estado === 'en_tramite') {
+              return true;
+            }
+            
+            // Trámites iniciados desde fichas asignadas al docente
+            // Deben coincidir con el consultante Y el grupo de una ficha iniciada
+            if (consultantesFichas.has(t.id_consultante) && gruposFichas.has(t.id_grupo)) {
+              return true;
+            }
+            
+            return false;
+          });
+        } else if (activeTab === 'otras') {
+          // Otras trámites: trámites iniciados desde fichas asignadas a otros docentes
+          // Obtener todas las fichas iniciadas de otros docentes
+          let fichasOtrosDocentes: any[] = [];
+          try {
+            const todasFichas = await ApiService.getFichas();
+            fichasOtrosDocentes = todasFichas.filter((f: any) => 
+              f.id_docente !== user.id_usuario && f.estado === 'iniciada'
+            );
+          } catch (err) {
+            console.error('Error al cargar fichas de otros docentes:', err);
+          }
+          
+          // Extraer consultantes y grupos de las fichas iniciadas de otros docentes
+          const consultantesFichas = new Set(fichasOtrosDocentes.map((f: any) => f.id_consultante));
+          const gruposFichas = new Set(fichasOtrosDocentes.map((f: any) => f.id_grupo).filter((g: any) => g != null));
+          
+          // Filtrar trámites que coinciden con consultante y grupo de fichas iniciadas de otros docentes
+          data = data.filter((t: Tramite) => {
+            return consultantesFichas.has(t.id_consultante) && gruposFichas.has(t.id_grupo);
+          });
+        } else if (activeTab === 'todas') {
+          // Todas los trámites: todos los trámites en_tramite e iniciados
+          // Obtener todas las fichas iniciadas
+          let todasFichasIniciadas: any[] = [];
+          try {
+            const todasFichas = await ApiService.getFichas();
+            todasFichasIniciadas = todasFichas.filter((f: any) => f.estado === 'iniciada');
+          } catch (err) {
+            console.error('Error al cargar todas las fichas:', err);
+          }
+          
+          // Extraer consultantes y grupos de todas las fichas iniciadas
+          const consultantesFichas = new Set(todasFichasIniciadas.map((f: any) => f.id_consultante));
+          const gruposFichas = new Set(todasFichasIniciadas.map((f: any) => f.id_grupo).filter((g: any) => g != null));
+          
+          // Filtrar trámites:
+          // - Trámites aprobados de grupos donde participa el docente
+          // - Trámites que coinciden con consultante y grupo de cualquier ficha iniciada
+          data = data.filter((t: Tramite) => {
+            // Trámites en_tramite de grupos donde participa
+            if (gruposIds.includes(t.id_grupo) && t.estado === 'en_tramite') {
+              return true;
+            }
+            
+            // Trámites iniciados desde cualquier ficha
+            if (consultantesFichas.has(t.id_consultante) && gruposFichas.has(t.id_grupo)) {
+              return true;
+            }
+            
+            return false;
+          });
+        }
       }
-      // Admin ve todos los trámites
+      // Admin ve todos los trámites (incluyendo pendientes)
       
       setTramites(data);
       setError(null);
@@ -118,6 +232,23 @@ export function TramitesList() {
     }
   };
 
+  const handleAprobarTramite = async (id: number) => {
+    try {
+      const result = await ApiService.aprobarTramite(id);
+      await loadTramites();
+      if (result.accepted) {
+        showToast(
+          result.message || 'Solicitud de aprobación enviada. Camunda actualizará el trámite en breve.',
+          'info'
+        );
+      } else {
+        showToast('Trámite aprobado exitosamente', 'success');
+      }
+    } catch (err: any) {
+      showToast(`Error al aprobar trámite: ${err.message}`, 'error');
+    }
+  };
+
   const handleConsultanteClick = async (idConsultante: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!hasRole('estudiante')) return;
@@ -135,25 +266,28 @@ export function TramitesList() {
   };
 
   const getEstadoIcon = (estado: string) => {
-    switch (estado) {
-      case 'iniciado': return <FaClock className="status-icon iniciado" />;
-      case 'en_revision': return <FaSync className="status-icon en-revision spin" />;
-      case 'aprobado': return <FaCheckCircle className="status-icon aprobado" />;
-      case 'rechazado': return <FaTimesCircle className="status-icon rechazado" />;
-      case 'cerrado': return <FaClipboardCheck className="status-icon cerrado" />;
+    // Normalizar "iniciado" a "en_tramite" para visualización
+    const estadoNormalizado = estado === 'iniciado' ? 'en_tramite' : estado;
+    switch (estadoNormalizado) {
+      case 'pendiente': return <FaClock className="status-icon pendiente" />;
+      case 'en_tramite': return <FaSync className="status-icon en-tramite spin" />;
+      case 'finalizado': return <FaCheckCircle className="status-icon finalizado" />;
+      case 'desistido': return <FaTimesCircle className="status-icon desistido" />;
       default: return <FaFileAlt className="status-icon" />;
     }
   };
 
   const getEstadoLabel = (estado: string) => {
+    // Normalizar "iniciado" a "en_tramite" para visualización
+    const estadoNormalizado = estado === 'iniciado' ? 'en_tramite' : estado;
     const labels: { [key: string]: string } = {
-      iniciado: 'Iniciado',
-      en_revision: 'En Revisión',
-      aprobado: 'Aprobado',
-      rechazado: 'Rechazado',
-      cerrado: 'Cerrado',
+      pendiente: 'Pendiente',
+      en_tramite: 'En Trámite',
+      iniciado: 'En Trámite', // Mapeo para compatibilidad
+      finalizado: 'Finalizado',
+      desistido: 'Desistido',
     };
-    return labels[estado] || estado;
+    return labels[estadoNormalizado] || labels[estado] || estado;
   };
 
   if (loading && tramites.length === 0) return <div className="loading">Cargando trámites...</div>;
@@ -162,13 +296,57 @@ export function TramitesList() {
   return (
     <div className="tramites-container">
       <div className="tramites-header">
-        <h2>📋 Lista de Trámites</h2>
+        <div>
+          <h2>📋 Lista de Trámites</h2>
+          {hasRole('docente') && (
+            <div className="tabs-container">
+              <button
+                className={`tab ${activeTab === 'mis' ? 'active' : ''}`}
+                onClick={() => setActiveTab('mis')}
+              >
+                Mis Trámites
+              </button>
+              <button
+                className={`tab ${activeTab === 'otras' ? 'active' : ''}`}
+                onClick={() => setActiveTab('otras')}
+              >
+                Otros Trámites
+              </button>
+              <button
+                className={`tab ${activeTab === 'todas' ? 'active' : ''}`}
+                onClick={() => setActiveTab('todas')}
+              >
+                Todos los Trámites
+              </button>
+            </div>
+          )}
+        </div>
         <div className="header-actions">
+          <div className="search-container">
+            <FaSearch className="search-icon" />
+            <input
+              type="text"
+              placeholder="Buscar por carpeta, consultante, grupo, estado..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="clear-search-btn"
+                title="Limpiar búsqueda"
+              >
+                <FaTimes />
+              </button>
+            )}
+          </div>
           <button onClick={loadTramites} className="refresh-btn" title="Actualizar">
             <FaSync /> Actualizar
           </button>
         </div>
       </div>
+
 
       {/* Tabla */}
       {tramites.length === 0 ? (
@@ -194,7 +372,7 @@ export function TramitesList() {
                 <>
                   <tr 
                     key={tramite.id_tramite} 
-                    className={`table-row ${tramite.estado === 'en_revision' ? 'highlight-row' : ''}`}
+                    className={`table-row ${(tramite.estado === 'en_tramite' || tramite.estado === 'iniciado') ? 'highlight-row' : ''}`}
                     onClick={() => toggleRow(tramite.id_tramite)}
                   >
                     <td className="expand-icon">
@@ -235,35 +413,33 @@ export function TramitesList() {
                       })}
                     </td>
                     <td className="action-buttons">
-                      {/* Solo docentes responsables y admins docente/sistema pueden aprobar/rechazar */}
-                      {tramite.estado === 'en_revision' && (
-                        (hasRole('admin') && hasAccessLevel(2)) || 
-                        (hasRole('docente') && user?.grupos_participa?.some(
-                          gp => gp.id_grupo === tramite.id_grupo && gp.rol_en_grupo === 'responsable'
-                        ))
-                      ) && (
-                        <div className="tarea-actions">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCompletarTarea(tramite.id_tramite, true);
-                            }}
-                            className="action-btn approve-btn"
-                            title="Aprobar trámite"
-                          >
-                            <FaCheckCircle /> Aprobar
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCompletarTarea(tramite.id_tramite, false);
-                            }}
-                            className="action-btn reject-btn"
-                            title="Rechazar trámite"
-                          >
-                            <FaTimesCircle /> Rechazar
-                          </button>
-                        </div>
+                      {/* Administradores pueden aprobar trámites pendientes */}
+                      {tramite.estado === 'pendiente' && hasRole('admin') && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAprobarTramite(tramite.id_tramite);
+                          }}
+                          className="action-btn approve-btn"
+                          title="Aprobar trámite pendiente"
+                        >
+                          <FaCheckCircle /> Aprobar
+                        </button>
+                      )}
+                      {/* Alumnos y docentes pueden cambiar el estado del trámite */}
+                      {(hasRole('estudiante') || hasRole('docente') || (hasRole('admin') && hasAccessLevel(2))) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTramiteCambiarEstado(tramite);
+                            setShowCambiarEstadoModal(true);
+                          }}
+                          className="action-btn"
+                          style={{ background: 'linear-gradient(135deg, #6c757d, #5a6268)' }}
+                          title="Cambiar estado del trámite"
+                        >
+                          <FaSync /> Cambiar Estado
+                        </button>
                       )}
                       {/* Solo admin sistema y admin docente pueden eliminar */}
                       {hasRole('admin') && hasAccessLevel(2) && (
@@ -552,6 +728,19 @@ export function TramitesList() {
             setTramiteDocumentos(null);
           }}
           onUpdate={loadTramites}
+        />
+      )}
+      {/* Modal para cambiar estado del trámite */}
+      {showCambiarEstadoModal && tramiteCambiarEstado && (
+        <CambiarEstadoTramiteModal
+          tramite={tramiteCambiarEstado}
+          onClose={() => {
+            setShowCambiarEstadoModal(false);
+            setTramiteCambiarEstado(null);
+          }}
+          onSuccess={() => {
+            loadTramites();
+          }}
         />
       )}
     </div>

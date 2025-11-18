@@ -34,8 +34,8 @@ export function Login() {
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
-            <h1>🔐 SGST</h1>
-            <p>Sistema de Gestión de Trámites</p>
+            <h1>SiGeST</h1>
+            <p>Sistema de Gestion y Seguimiento de Tramites</p>
           </div>
           <h2>Clínica Notarial</h2>
         </div>
@@ -120,24 +120,7 @@ export function Login() {
 
             <div className="credential-card admin">
               <div className="credential-header">
-                <span className="credential-badge">🟠 Admin Docente</span>
-              </div>
-              <div className="credential-info">
-                <p><strong>CI:</strong> 87654321</p>
-                <p><strong>Password:</strong> password123</p>
-                <button 
-                  className="credential-btn"
-                  onClick={() => handleQuickLogin('87654321')}
-                  disabled={loading}
-                >
-                  Usar este usuario
-                </button>
-              </div>
-            </div>
-
-            <div className="credential-card admin">
-              <div className="credential-header">
-                <span className="credential-badge">🟡 Admin Administrativo</span>
+                <span className="credential-badge">🟡 Administrativo</span>
               </div>
               <div className="credential-info">
                 <p><strong>CI:</strong> 34567890</p>

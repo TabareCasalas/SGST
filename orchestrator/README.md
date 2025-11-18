@@ -71,7 +71,10 @@ ORCHESTRATOR_PORT=3002
 CAMUNDA_URL=http://camunda:8080/engine-rest
 BACKEND_URL=http://backend:3001
 NODE_ENV=production
+ORCHESTRATOR_TOKEN=dev-orchestrator-token
 ```
+
+> El mismo valor de `ORCHESTRATOR_TOKEN` debe configurarse en el backend (`ORCHESTRATOR_TOKEN`) para que las llamadas internas del orchestrator sean aceptadas.
 
 ## Desarrollo
 

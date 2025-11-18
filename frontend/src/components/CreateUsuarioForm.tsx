@@ -101,7 +101,10 @@ export function CreateUsuarioForm({ onSuccess }: Props) {
       // Solo agregar semestre y grupo si es estudiante
       if (formData.rol === 'estudiante') {
         data.semestre = formData.semestre;
-        data.id_grupo = parseInt(formData.id_grupo);
+        // Solo agregar grupo si se seleccionó uno
+        if (formData.id_grupo && formData.id_grupo.trim() !== '') {
+          data.id_grupo = parseInt(formData.id_grupo);
+        }
       }
 
       await ApiService.createUsuario(data);
@@ -324,8 +327,7 @@ export function CreateUsuarioForm({ onSuccess }: Props) {
             >
               <option value="">Seleccionar nivel</option>
               <option value="3">Nivel 3 - Administrador del Sistema</option>
-              <option value="2">Nivel 2 - Administrador Docente</option>
-              <option value="1">Nivel 1 - Administrador Administrativo</option>
+              <option value="1">Nivel 1 - Administrativo</option>
             </select>
           </div>
         )}
@@ -346,15 +348,14 @@ export function CreateUsuarioForm({ onSuccess }: Props) {
             </div>
 
             <div className="form-group">
-              <label htmlFor="id_grupo">Grupo *</label>
+              <label htmlFor="id_grupo">Grupo (opcional)</label>
               <select
                 id="id_grupo"
                 value={formData.id_grupo}
                 onChange={(e) => setFormData({ ...formData, id_grupo: e.target.value })}
-                required
                 disabled={loading}
               >
-                <option value="">Seleccionar grupo</option>
+                <option value="">Seleccionar grupo (opcional)</option>
                 {grupos.map((g) => (
                   <option key={g.id_grupo} value={g.id_grupo}>
                     {g.nombre}

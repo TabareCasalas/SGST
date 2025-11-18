@@ -26,3 +26,13 @@ Write-Host "- Camunda: http://localhost:8081" -ForegroundColor White
 Write-Host "- PgAdmin: http://localhost:8080" -ForegroundColor White
 
 
+
+
+
+
+
+
+
+
+
+

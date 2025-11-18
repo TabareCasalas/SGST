@@ -1,10 +1,62 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { normalizeText } from '../utils/normalizeText';
+import { AuthRequest } from '../middleware/authMiddleware';
+import { AuditoriaService } from '../utils/auditoriaService';
 
 export const grupoController = {
-  async getAll(req: Request, res: Response) {
+  async getAll(req: AuthRequest, res: Response) {
     try {
+      const { search } = req.query;
+
+      const where: any = {};
+
+      // Búsqueda por texto en múltiples campos
+      if (search && typeof search === 'string' && search.trim() !== '') {
+        const searchTerm = search.trim();
+        const normalizedSearch = normalizeText(searchTerm);
+        
+        where.OR = [
+          // Buscar en nombre del grupo (con y sin tildes)
+          { nombre: { contains: searchTerm, mode: 'insensitive' } },
+          { nombre: { contains: normalizedSearch, mode: 'insensitive' } },
+          // Buscar en descripción (con y sin tildes)
+          { descripcion: { contains: searchTerm, mode: 'insensitive' } },
+          { descripcion: { contains: normalizedSearch, mode: 'insensitive' } },
+          // Buscar en nombre de miembros (responsables, asistentes, estudiantes) (con y sin tildes)
+          {
+            miembros_grupo: {
+              some: {
+                usuario: {
+                  nombre: { contains: searchTerm, mode: 'insensitive' }
+                }
+              }
+            }
+          },
+          {
+            miembros_grupo: {
+              some: {
+                usuario: {
+                  nombre: { contains: normalizedSearch, mode: 'insensitive' }
+                }
+              }
+            }
+          },
+          // Buscar en CI de miembros
+          {
+            miembros_grupo: {
+              some: {
+                usuario: {
+                  ci: { contains: searchTerm, mode: 'insensitive' }
+                }
+              }
+            }
+          }
+        ];
+      }
+
       const grupos = await prisma.grupo.findMany({
+        where,
         include: {
           tramites: {
             take: 5,
@@ -16,14 +68,30 @@ export const grupoController = {
             },
           },
         },
+        orderBy: {
+          nombre: 'asc',
+        },
       });
+
+      // Registrar auditoría
+      const userId = req.user?.id;
+      if (userId) {
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: userId,
+          tipo_entidad: 'grupo',
+          id_entidad: null,
+          accion: 'listar',
+          detalles: `Listado de grupos consultado${search ? ` con filtro: ${search}` : ''}`,
+        });
+      }
+
       res.json(grupos);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   },
 
-  async getById(req: Request, res: Response) {
+  async getById(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
       const grupo = await prisma.grupo.findUnique({
@@ -51,13 +119,25 @@ export const grupoController = {
         return res.status(404).json({ error: 'Grupo no encontrado' });
       }
 
+      // Registrar auditoría
+      const userId = req.user?.id;
+      if (userId) {
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: userId,
+          tipo_entidad: 'grupo',
+          id_entidad: grupo.id_grupo,
+          accion: 'consultar',
+          detalles: `Grupo consultado: ${grupo.nombre} (Miembros: ${grupo.miembros_grupo.length})`,
+        });
+      }
+
       res.json(grupo);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   },
 
-  async create(req: Request, res: Response) {
+  async create(req: AuthRequest, res: Response) {
     try {
       const { nombre, descripcion, activo, responsable_id, asistentes_ids, estudiantes_ids } = req.body;
 
@@ -128,13 +208,25 @@ export const grupoController = {
         },
       });
 
+      // Registrar auditoría
+      const userId = req.user?.id;
+      if (userId) {
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: userId,
+          tipo_entidad: 'grupo',
+          id_entidad: grupo.id_grupo,
+          accion: 'crear',
+          detalles: `Grupo creado: ${grupo.nombre}. Miembros: ${grupo.miembros_grupo.length}`,
+        });
+      }
+
       res.status(201).json(grupo);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   },
 
-  async update(req: Request, res: Response) {
+  async update(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
       const { nombre, descripcion, activo } = req.body;
@@ -154,6 +246,25 @@ export const grupoController = {
           },
         },
       });
+
+      // Registrar auditoría
+      const userId = req.user?.id;
+      if (userId) {
+        const cambios: string[] = [];
+        if (nombre !== undefined) cambios.push('nombre');
+        if (descripcion !== undefined) cambios.push('descripción');
+        if (activo !== undefined) cambios.push(`activo: ${activo}`);
+
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: userId,
+          tipo_entidad: 'grupo',
+          id_entidad: grupo.id_grupo,
+          accion: 'modificar',
+          detalles: cambios.length > 0 
+            ? `Grupo ${grupo.nombre} modificado. Campos: ${cambios.join(', ')}` 
+            : `Grupo ${grupo.nombre} actualizado`,
+        });
+      }
 
       res.json(grupo);
     } catch (error: any) {

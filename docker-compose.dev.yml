@@ -1,5 +1,7 @@
-<<<<<<< Updated upstream
 version: '3.8'
+
+# Docker Compose para desarrollo local.
+# Ejecutar junto a docker-compose.yml para levantar solo servicios de infraestructura.
 
 services:
   # Solo base de datos para desarrollo
@@ -37,58 +39,149 @@ services:
     volumes:
       - pgadmin_data_dev:/var/lib/pgadmin
 
-  # Camunda BPM Platform para desarrollo
-  camunda:
-    image: camunda/camunda-bpm-platform:run-latest
-    container_name: sgst_camunda_dev
+  # Elasticsearch (requerido por Camunda 8 Operate)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: sgst_elasticsearch_dev
     restart: unless-stopped
     environment:
-      DB_DRIVER: org.postgresql.Driver
-      DB_URL: jdbc:postgresql://postgres:5432/camunda_db
-      DB_USERNAME: sgst_user
-      DB_PASSWORD: sgst_password
-      WAIT_FOR: postgres:5432
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    networks:
+      - sgst_network_dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Zeebe - Motor de procesos de Camunda 8
+  zeebe:
+    image: camunda/zeebe:8.5.0
+    container_name: sgst_zeebe_dev
+    restart: unless-stopped
+    environment:
+      - ZEEBE_BROKER_DATA_DISKUSAGECOMMANDWATERMARK=0.998
+      - ZEEBE_BROKER_DATA_DISKUSAGEREPLICATIONWATERMARK=0.999
+      - ZEEBE_BROKER_CLUSTER_PARTITIONSCOUNT=2
+      - ZEEBE_BROKER_CLUSTER_REPLICATIONFACTOR=1
+      - ZEEBE_BROKER_CLUSTER_CLUSTERSIZE=1
+      - ZEEBE_BROKER_CLUSTER_NODEID=0
+      - ZEEBE_BROKER_NETWORK_HOST=0.0.0.0
+      - ZEEBE_BROKER_NETWORK_ADVERTISEDHOST=zeebe
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_CLASSNAME=io.camunda.zeebe.exporter.ElasticsearchExporter
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_URL=http://elasticsearch:9200
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_BULK_SIZE=1
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_BULK_DELAY=5
+    ports:
+      - "26500:26500"
+      - "26501:26501"
+    volumes:
+      - zeebe_data_dev:/usr/local/zeebe/data
+      - ./camunda/diagrams:/usr/local/zeebe/configuration/resources
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - sgst_network_dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9600/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Operate - Monitoreo y gestión de procesos
+  operate:
+    image: camunda/operate:8.5.0
+    container_name: sgst_operate_dev
+    restart: unless-stopped
+    environment:
+      - CAMUNDA_OPERATE_ZEEBE_GATEWAYADDRESS=zeebe:26500
+      - CAMUNDA_OPERATE_ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_OPERATE_ZEEBEELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_OPERATE_MULTITENANCY_ENABLED=false
     ports:
       - "8081:8080"
-    volumes:
-      - camunda_data_dev:/camunda/webapps
-      - ./camunda/diagrams:/camunda/diagrams
+    depends_on:
+      - zeebe
+      - elasticsearch
+    networks:
+      - sgst_network_dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Tasklist - Gestión de tareas de usuario
+  tasklist:
+    image: camunda/tasklist:8.5.0
+    container_name: sgst_tasklist_dev
+    restart: unless-stopped
+    environment:
+      - CAMUNDA_TASKLIST_ZEEBE_GATEWAYADDRESS=zeebe:26500
+      - CAMUNDA_TASKLIST_ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_TASKLIST_ZEEBEELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_TASKLIST_GRAPHQL_URL=http://operate:8080
+      - CAMUNDA_TASKLIST_MULTITENANCY_ENABLED=false
+    ports:
+      - "8082:8080"
+    depends_on:
+      - zeebe
+      - operate
+      - elasticsearch
+    networks:
+      - sgst_network_dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Identity - Autenticación y autorización
+  identity:
+    image: camunda/identity:8.5.0
+    container_name: sgst_identity_dev
+    restart: unless-stopped
+    environment:
+      - CAMUNDA_IDENTITY_DATABASE_URL=jdbc:postgresql://postgres:5432/camunda_db
+      - CAMUNDA_IDENTITY_DATABASE_USERNAME=sgst_user
+      - CAMUNDA_IDENTITY_DATABASE_PASSWORD=sgst_password
+      - CAMUNDA_IDENTITY_DATABASE_DRIVER=org.postgresql.Driver
+      - CAMUNDA_IDENTITY_AUTH_JWT_ISSUER=http://identity:8080
+      - CAMUNDA_IDENTITY_AUTH_JWT_AUDIENCE=operate, tasklist, optimize
+    ports:
+      - "8083:8080"
     depends_on:
       - postgres
     networks:
       - sgst_network_dev
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/engine-rest/engine"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
+
+  # Excluir frontend y backend cuando se usa este perfil
+  frontend:
+    profiles: ["exclude"]
+
+  backend:
+    profiles: ["exclude"]
 
 volumes:
   postgres_data_dev:
     driver: local
   pgadmin_data_dev:
     driver: local
-  camunda_data_dev:
+  zeebe_data_dev:
     driver: local
 
 networks:
   sgst_network_dev:
     driver: bridge
-
-
-
-=======
-# Docker Compose para desarrollo local
-# Este archivo excluye frontend y backend para correrlos localmente
-# Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-
-services:
-  frontend:
-    profiles:
-      - exclude  # Excluir este servicio
-  backend:
-    profiles:
-      - exclude  # Excluir este servicio
->>>>>>> Stashed changes
 
 

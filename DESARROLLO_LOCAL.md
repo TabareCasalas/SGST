@@ -36,7 +36,11 @@ Estos servicios ahora correrán localmente.
    REFRESH_SECRET="your-refresh-secret-change-this-in-production"
    PORT=3001
    NODE_ENV=development
+   ORCHESTRATOR_URL="http://localhost:3002"
+   ORCHESTRATOR_TOKEN="dev-orchestrator-token"
    ```
+
+   > **Importante:** usa el mismo valor de `ORCHESTRATOR_TOKEN` en el servicio de orchestrator (`orchestrator/.env` o variables de Docker) para que las llamadas internas estén autenticadas.
 
 ### 3. Instalar Dependencias
 
@@ -106,6 +110,8 @@ npm run dev
 ```
 
 El frontend estará en: http://localhost:5173 (Vite usa puerto 5173 por defecto)
+
+> **Camunda y diagramas BPMN:** cualquier archivo que coloques en `camunda/diagrams/` se desplegará automáticamente cuando el contenedor `camunda` se inicie, ya que el directorio se monta en `/camunda/configuration/resources`. Si actualizas un diagrama, reinicia el contenedor para que tome la nueva versión.
 
 ---
 
@@ -233,5 +239,11 @@ docker-compose restart postgres
 ```powershell
 docker-compose up -d
 ```
+
+
+
+
+
+
 
 

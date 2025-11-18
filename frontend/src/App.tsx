@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import { TramitesList } from './components/TramitesList';
-import { CreateTramiteForm } from './components/CreateTramiteForm';
 import { UsuariosList } from './components/UsuariosList';
-import { CreateUsuarioForm } from './components/CreateUsuarioForm';
 import { GruposList } from './components/GruposList';
-import { CreateGrupoForm } from './components/CreateGrupoForm';
+import { FichasList } from './components/FichasList';
 import { EstudianteGrupoInfo } from './components/EstudianteGrupoInfo';
+import { EstudianteFichasList } from './components/EstudianteFichasList';
+import { NotificacionesPanel } from './components/NotificacionesPanel';
+import { NotificacionesBadge } from './components/NotificacionesBadge';
+import { AuditoriasList } from './components/AuditoriasList';
+import { ReportesPanel } from './components/ReportesPanel';
 import { Login } from './components/Login';
 import { NotificationBanner } from './components/NotificationBanner';
 import { ToastContainer } from './components/ToastContainer';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { FaSignOutAlt, FaUser } from 'react-icons/fa';
+import { FaSignOutAlt, FaUser, FaBell } from 'react-icons/fa';
 
-type View = 'tramites' | 'crear_tramite' | 'usuarios' | 'crear_usuario' | 'grupos' | 'crear_grupo' | 'mis_tramites' | 'consultar_tramite' | 'mi_grupo';
+type View = 'tramites' | 'usuarios' | 'grupos' | 'fichas' | 'mis_tramites' | 'consultar_tramite' | 'mi_grupo' | 'notificaciones' | 'auditorias' | 'reportes';
 
 interface MenuItem {
   id: string;
@@ -26,9 +29,11 @@ interface MenuItem {
 
 function AppContent() {
   const { user, logout, isAuthenticated, hasRole, hasAccessLevel } = useAuth();
+  const [notificacionesOpen, setNotificacionesOpen] = useState(false);
   const [currentView, setCurrentView] = useState<View>('tramites');
   const [refreshKey, setRefreshKey] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [contadorNotificaciones, setContadorNotificaciones] = useState(0);
 
   // Actualizar vista inicial cuando se carga el usuario
   useEffect(() => {
@@ -43,20 +48,25 @@ function AppContent() {
     }
   }, [user]);
 
-  const handleFormSuccess = () => {
-    setCurrentView('tramites');
-    setRefreshKey(prev => prev + 1);
+  // Cargar contador de notificaciones
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadContadorNotificaciones();
+      const interval = setInterval(loadContadorNotificaciones, 30000); // Cada 30 segundos
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
+
+  const loadContadorNotificaciones = async () => {
+    try {
+      const { ApiService } = await import('./services/api');
+      const data = await ApiService.getContadorNoLeidas();
+      setContadorNotificaciones(data.contador || 0);
+    } catch (error: any) {
+      console.error('Error al cargar contador de notificaciones:', error);
+    }
   };
 
-  const handleUsuarioFormSuccess = () => {
-    setCurrentView('usuarios');
-    setRefreshKey(prev => prev + 1);
-  };
-
-  const handleGrupoFormSuccess = () => {
-    setCurrentView('grupos');
-    setRefreshKey(prev => prev + 1);
-  };
 
   // Si no está autenticado, mostrar login
   if (!isAuthenticated || !user) {
@@ -68,38 +78,45 @@ function AppContent() {
 
   // Administradores
   if (hasRole('admin')) {
-    // Todos los admins ven trámites
-    menuItems.push({ id: 'tramites', icon: '📋', label: 'Trámites', view: 'tramites', roles: ['admin'] });
+    // Orden: Usuarios, Grupos, Fichas, Trámites, Auditorías, Reportes
     
-    // Solo Admin Docente (nivel 2) y Admin Sistema (nivel 3) pueden crear trámites
-    if (hasAccessLevel(2)) {
-      menuItems.push({ id: 'crear_tramite', icon: '➕', label: 'Crear Trámite', view: 'crear_tramite', roles: ['admin'] });
+    // 1. Usuarios (Administrativo nivel 1)
+    if (hasAccessLevel(1)) {
+      menuItems.push({ id: 'usuarios', icon: '👤', label: 'Usuarios', view: 'usuarios', roles: ['admin'] });
     }
     
-    // Todos los admins pueden ver grupos
+    // 2. Grupos (Todos los admins)
     menuItems.push({ id: 'grupos', icon: '👥', label: 'Grupos', view: 'grupos', roles: ['admin'] });
     
-    // Solo Admin Docente (nivel 2) y Admin Sistema (nivel 3) pueden crear grupos
-    if (hasAccessLevel(2)) {
-      menuItems.push({ id: 'crear_grupo', icon: '➕', label: 'Crear Grupo', view: 'crear_grupo', roles: ['admin'] });
+    // 3. Fichas (Administrativo nivel 1)
+    if (hasAccessLevel(1)) {
+      menuItems.push({ id: 'fichas', icon: '📄', label: 'Fichas', view: 'fichas', roles: ['admin'] });
     }
     
-    // Solo Admin Sistema (nivel 3) puede gestionar usuarios
-    if (hasAccessLevel(3)) {
-      menuItems.push({ id: 'usuarios', icon: '👤', label: 'Usuarios', view: 'usuarios', roles: ['admin'] });
-      menuItems.push({ id: 'crear_usuario', icon: '✚', label: 'Crear Usuario', view: 'crear_usuario', roles: ['admin'] });
+    // 4. Trámites (Todos los admins)
+    menuItems.push({ id: 'tramites', icon: '📋', label: 'Trámites', view: 'tramites', roles: ['admin'] });
+    
+    // 5. Auditorías (Administrativo nivel 1)
+    if (hasAccessLevel(1)) {
+      menuItems.push({ id: 'auditorias', icon: '📋', label: 'Auditorías', view: 'auditorias', roles: ['admin'] });
     }
+    
+    // 6. Reportes (Todos los admins)
+    menuItems.push({ id: 'reportes', icon: '📊', label: 'Reportes', view: 'reportes', roles: ['admin'] });
+    
   }
   
-  // Docentes - ven trámites y grupos
+  // Docentes - orden: Grupos, Fichas, Trámites
   if (hasRole('docente')) {
-    menuItems.push({ id: 'tramites', icon: '📋', label: 'Trámites', view: 'tramites', roles: ['docente'] });
     menuItems.push({ id: 'grupos', icon: '👥', label: 'Grupos', view: 'grupos', roles: ['docente'] });
+    menuItems.push({ id: 'fichas', icon: '📄', label: 'Mis Fichas', view: 'fichas', roles: ['docente'] });
+    menuItems.push({ id: 'tramites', icon: '📋', label: 'Trámites', view: 'tramites', roles: ['docente'] });
   }
   
   // Estudiantes
   if (hasRole('estudiante')) {
     menuItems.push({ id: 'mi_grupo', icon: '👥', label: 'Mi Grupo', view: 'mi_grupo', roles: ['estudiante'] });
+    menuItems.push({ id: 'fichas', icon: '📄', label: 'Fichas', view: 'fichas', roles: ['estudiante'] });
     menuItems.push({ id: 'mis_tramites', icon: '📂', label: 'Mis Trámites', view: 'mis_tramites', roles: ['estudiante'] });
   }
   
@@ -120,8 +137,8 @@ function AppContent() {
         <div className="sidebar-header">
           {sidebarOpen && (
             <div className="sidebar-logo">
-              <h2>🔐 SGST</h2>
-              <p>Sistema de Gestión</p>
+              <h2>SiGeST</h2>
+              <p>Sistema de Gestion y Seguimiento de Tramites</p>
             </div>
           )}
           <button 
@@ -163,14 +180,19 @@ function AppContent() {
         </nav>
 
         <div className="sidebar-footer">
-          {sidebarOpen && (
-            <div className="sidebar-info">
-              <p className="system-info">
-                <strong>Notarial</strong>
-                <span>Clínica Universitaria</span>
-              </p>
-            </div>
-          )}
+          <button 
+            className="notificaciones-btn" 
+            onClick={() => setNotificacionesOpen(true)} 
+            title="Notificaciones"
+          >
+            <FaBell />
+            {sidebarOpen && <span>Notificaciones</span>}
+            {contadorNotificaciones > 0 && (
+              <span className="notificaciones-contador-sidebar">
+                {contadorNotificaciones > 99 ? '99+' : contadorNotificaciones}
+              </span>
+            )}
+          </button>
           <button onClick={logout} className="logout-btn" title="Cerrar sesión">
             <FaSignOutAlt />
             {sidebarOpen && <span>Cerrar Sesión</span>}
@@ -178,20 +200,31 @@ function AppContent() {
         </div>
       </aside>
 
+      {/* Panel de Notificaciones (solo cuando se abre desde el botón del footer) */}
+      {isAuthenticated && currentView !== 'notificaciones' && (
+        <NotificacionesPanel 
+          isOpen={notificacionesOpen} 
+          onClose={() => {
+            setNotificacionesOpen(false);
+            loadContadorNotificaciones(); // Actualizar contador al cerrar
+          }} 
+        />
+      )}
+
       {/* Main Content */}
       <main className="main-content">
         <header className="top-header">
           <div className="header-title">
             <h1>
               {currentView === 'tramites' && '📋 Gestión de Trámites'}
-              {currentView === 'crear_tramite' && '➕ Crear Nuevo Trámite'}
               {currentView === 'usuarios' && '👥 Gestión de Usuarios'}
-              {currentView === 'crear_usuario' && '👤 Registrar Usuario'}
               {currentView === 'grupos' && '👥 Gestión de Grupos'}
-              {currentView === 'crear_grupo' && '➕ Crear Nuevo Grupo'}
+              {currentView === 'fichas' && (hasRole('estudiante') ? '📄 Fichas' : '📄 Gestión de Fichas')}
               {currentView === 'mi_grupo' && '👥 Mi Grupo'}
               {currentView === 'mis_tramites' && '📂 Mis Trámites'}
               {currentView === 'consultar_tramite' && '🔍 Consultar Trámite'}
+              {currentView === 'notificaciones' && '🔔 Notificaciones'}
+              {currentView === 'auditorias' && '📋 Auditorías del Sistema'}
             </h1>
             <p className="header-subtitle">
               Sistema de Gestión de Trámites Notariales
@@ -204,26 +237,37 @@ function AppContent() {
           {currentView === 'tramites' && (hasRole(['admin', 'docente'])) && (
             <TramitesList key={refreshKey} />
           )}
-          {currentView === 'crear_tramite' && hasRole('admin') && hasAccessLevel(2) && (
-            <CreateTramiteForm onSuccess={handleFormSuccess} />
-          )}
           {currentView === 'grupos' && (hasRole(['admin', 'docente'])) && (
             <GruposList key={refreshKey} />
           )}
-          {currentView === 'crear_grupo' && hasRole('admin') && hasAccessLevel(2) && (
-            <CreateGrupoForm onSuccess={handleGrupoFormSuccess} />
+          {currentView === 'fichas' && (hasRole('admin') && hasAccessLevel(1) || hasRole('docente')) && (
+            <FichasList key={refreshKey} />
           )}
-          {currentView === 'usuarios' && hasRole('admin') && hasAccessLevel(3) && (
+          {currentView === 'fichas' && hasRole('estudiante') && (
+            <EstudianteFichasList key={refreshKey} />
+          )}
+          {currentView === 'usuarios' && hasRole('admin') && hasAccessLevel(1) && (
             <UsuariosList key={refreshKey} />
-          )}
-          {currentView === 'crear_usuario' && hasRole('admin') && hasAccessLevel(3) && (
-            <CreateUsuarioForm onSuccess={handleUsuarioFormSuccess} />
           )}
           {currentView === 'mi_grupo' && hasRole('estudiante') && (
             <EstudianteGrupoInfo key={refreshKey} />
           )}
           {currentView === 'mis_tramites' && hasRole(['estudiante', 'consultante']) && (
             <TramitesList key={refreshKey} />
+          )}
+          {currentView === 'notificaciones' && (
+            <NotificacionesPanel 
+              isOpen={true} 
+              onClose={() => {}} 
+              isFullPage={true}
+              onNotificacionLeida={loadContadorNotificaciones}
+            />
+          )}
+          {currentView === 'auditorias' && hasRole('admin') && hasAccessLevel(1) && (
+            <AuditoriasList key={refreshKey} />
+          )}
+          {currentView === 'reportes' && hasRole('admin') && (
+            <ReportesPanel key={refreshKey} />
           )}
         </div>
 
@@ -266,10 +310,8 @@ function getRoleLabel(role: string, nivel_acceso?: number): string {
     switch (nivel_acceso) {
       case 3:
         return 'Admin. Sistema';
-      case 2:
-        return 'Admin. Docente';
       case 1:
-        return 'Admin. Administrativo';
+        return 'Administrativo';
       default:
         return 'Administrador';
     }

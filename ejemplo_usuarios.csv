@@ -1,0 +1,10 @@
+nombre,ci,domicilio,telefono,correo,rol,semestre,nivel_acceso,password
+Juan Pérez,12345678,Av. Principal 123,099123456,juan.perez@example.com,estudiante,2024-1,,
+María García,87654321,Calle Secundaria 456,098765432,maria.garcia@example.com,docente,,,
+Carlos López,11223344,Barrio Centro 789,097112233,carlos.lopez@example.com,consultante,,,
+Ana Martínez,55667788,Av. Libertad 321,096556677,ana.martinez@example.com,estudiante,2024-2,,
+Pedro Rodríguez,99887766,Calle 18 de Julio 654,095998877,pedro.rodriguez@example.com,docente,,,
+Admin Sistema,11111111,Dirección Admin 1,097111111,admin.sistema@example.com,administrador,,3,
+Admin Administrativo,22222222,Dirección Admin 2,097222222,admin.administrativo@example.com,administrador,,1,
+
+

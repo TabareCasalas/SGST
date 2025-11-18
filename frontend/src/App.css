@@ -89,6 +89,13 @@ body {
   opacity: 1;
   transition: opacity var(--transition-fast);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.35rem;
+  padding-right: 2.5rem;
 }
 
 .sidebar.closed .sidebar-logo {
@@ -107,16 +114,20 @@ body {
 
 .sidebar-logo h2 {
   color: var(--text-white);
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  margin-bottom: 0.25rem;
+  margin: 0;
+  letter-spacing: 0.04em;
 }
 
 .sidebar-logo p {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.9rem;
   transition: opacity var(--transition-fast);
-  margin-bottom: 0.25rem;
+  margin: 0;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  max-width: 14ch;
 }
 
 .user-role {
@@ -178,6 +189,7 @@ body {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-module {
@@ -358,20 +370,55 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-info {
-  color: var(--text-white);
-  margin-bottom: 1rem;
-}
-
-.sidebar-info strong {
-  display: block;
+.notificaciones-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
   font-size: 0.9rem;
-  margin-bottom: 0.25rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  position: relative;
 }
 
-.sidebar-info span {
+.notificaciones-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.notificaciones-contador-sidebar {
+  background: var(--danger-color, #dc3545);
+  color: white;
+  border-radius: 12px;
+  padding: 0.125rem 0.5rem;
   font-size: 0.75rem;
-  opacity: 0.8;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1.4;
+  margin-left: auto;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
 }
 
 .logout-btn {

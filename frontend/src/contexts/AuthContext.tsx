@@ -8,7 +8,7 @@ export interface AuthUser {
   ci: string;
   correo: string;
   rol: UserRole;
-  nivel_acceso?: number; // 1=admin_administrativo, 2=admin_docente, 3=admin_sistema
+  nivel_acceso?: number; // 1=admin_administrativo (unificado), 3=admin_sistema
   activo: boolean;
   semestre?: string;
   id_grupo?: number;
@@ -33,7 +33,6 @@ interface AuthContextType {
   hasRole: (roles: UserRole | UserRole[]) => boolean;
   hasAccessLevel: (minLevel: number) => boolean;
   isAdminSistema: () => boolean;
-  isAdminDocente: () => boolean;
   isAdminAdministrativo: () => boolean;
 }
 
@@ -154,10 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user?.rol === 'admin' && user?.nivel_acceso === 3;
   };
 
-  const isAdminDocente = (): boolean => {
-    return user?.rol === 'admin' && user?.nivel_acceso === 2;
-  };
-
   const isAdminAdministrativo = (): boolean => {
     return user?.rol === 'admin' && user?.nivel_acceso === 1;
   };
@@ -171,7 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasRole, 
       hasAccessLevel,
       isAdminSistema,
-      isAdminDocente,
       isAdminAdministrativo
     }}>
       {children}

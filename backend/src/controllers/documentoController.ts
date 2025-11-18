@@ -3,6 +3,8 @@ import { prisma } from '../lib/prisma';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { AuthRequest } from '../middleware/authMiddleware';
+import { AuditoriaService } from '../utils/auditoriaService';
 
 // Configurar almacenamiento de archivos
 const storage = multer.diskStorage({
@@ -55,7 +57,7 @@ export const uploadMiddleware = multer({
 
 export const documentoController = {
   // Obtener todos los documentos de un trámite
-  async getByTramite(req: Request, res: Response) {
+  async getByTramite(req: AuthRequest, res: Response) {
     try {
       const { id_tramite } = req.params;
       
@@ -75,6 +77,18 @@ export const documentoController = {
         },
       });
 
+      // Registrar auditoría
+      const userId = req.user?.id;
+      if (userId) {
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: userId,
+          tipo_entidad: 'documento',
+          id_entidad: null,
+          accion: 'listar',
+          detalles: `Documentos del trámite ${id_tramite} consultados`,
+        });
+      }
+
       res.json(documentos);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -82,7 +96,7 @@ export const documentoController = {
   },
 
   // Subir un documento
-  async upload(req: Request, res: Response) {
+  async upload(req: AuthRequest, res: Response) {
     try {
       const { id_tramite } = req.params;
       const id_usuario = req.user?.id; // Del token JWT
@@ -100,6 +114,9 @@ export const documentoController = {
       // Verificar que el trámite existe
       const tramite = await prisma.tramite.findUnique({
         where: { id_tramite: parseInt(id_tramite) },
+        select: {
+          num_carpeta: true,
+        },
       });
 
       if (!tramite) {
@@ -131,6 +148,18 @@ export const documentoController = {
         },
       });
 
+      // Registrar auditoría
+      if (id_usuario) {
+        const tamanoMB = (file.size / (1024 * 1024)).toFixed(2);
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: id_usuario,
+          tipo_entidad: 'documento',
+          id_entidad: documento.id_documento,
+          accion: 'crear',
+          detalles: `Documento adjuntado al trámite ${tramite.num_carpeta}. Archivo: ${file.originalname} (${tamanoMB} MB, ${file.mimetype})${descripcion ? `. Descripción: ${descripcion}` : ''}`,
+        });
+      }
+
       res.status(201).json(documento);
     } catch (error: any) {
       // Eliminar archivo si hay error
@@ -142,7 +171,7 @@ export const documentoController = {
   },
 
   // Descargar un documento
-  async download(req: Request, res: Response) {
+  async download(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
 
@@ -159,6 +188,18 @@ export const documentoController = {
         return res.status(404).json({ error: 'Archivo no encontrado en el servidor' });
       }
 
+      // Registrar auditoría
+      const userId = req.user?.id;
+      if (userId) {
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: userId,
+          tipo_entidad: 'documento',
+          id_entidad: documento.id_documento,
+          accion: 'descargar',
+          detalles: `Documento descargado: ${documento.nombre_archivo} del trámite`,
+        });
+      }
+
       // Enviar el archivo
       res.download(documento.ruta_archivo, documento.nombre_archivo, (err) => {
         if (err) {
@@ -172,7 +213,7 @@ export const documentoController = {
   },
 
   // Eliminar un documento
-  async delete(req: Request, res: Response) {
+  async delete(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
       const id_usuario = req.user?.id; // Del token JWT
@@ -183,6 +224,13 @@ export const documentoController = {
 
       const documento = await prisma.documentoAdjunto.findUnique({
         where: { id_documento: parseInt(id) },
+        include: {
+          tramite: {
+            select: {
+              num_carpeta: true,
+            },
+          },
+        },
       });
 
       if (!documento) {
@@ -197,6 +245,10 @@ export const documentoController = {
         return res.status(403).json({ error: 'No tienes permisos para eliminar este documento' });
       }
 
+      // Guardar información para auditoría antes de eliminar
+      const nombreArchivo = documento.nombre_archivo;
+      const numCarpeta = documento.tramite?.num_carpeta || 'N/A';
+
       // Eliminar archivo del sistema de archivos
       if (fs.existsSync(documento.ruta_archivo)) {
         fs.unlinkSync(documento.ruta_archivo);
@@ -206,6 +258,17 @@ export const documentoController = {
       await prisma.documentoAdjunto.delete({
         where: { id_documento: parseInt(id) },
       });
+
+      // Registrar auditoría
+      if (id_usuario) {
+        await AuditoriaService.crearDesdeRequest(req, {
+          id_usuario: id_usuario,
+          tipo_entidad: 'documento',
+          id_entidad: parseInt(id),
+          accion: 'eliminar',
+          detalles: `Documento eliminado del trámite ${numCarpeta}. Archivo: ${nombreArchivo}`,
+        });
+      }
 
       res.json({ message: 'Documento eliminado exitosamente' });
     } catch (error: any) {

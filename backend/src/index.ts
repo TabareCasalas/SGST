@@ -15,6 +15,9 @@ import notificacionRoutes from './routes/notificacionRoutes';
 import authRoutes from './routes/authRoutes';
 import hojaRutaRoutes from './routes/hojaRutaRoutes';
 import documentoRoutes from './routes/documentoRoutes';
+import fichaRoutes from './routes/fichaRoutes';
+import auditoriaRoutes from './routes/auditoriaRoutes';
+import reporteRoutes from './routes/reporteRoutes';
 
 dotenv.config();
 
@@ -48,6 +51,9 @@ app.use('/api/consultantes', consultanteRoutes);
 app.use('/api/notificaciones', notificacionRoutes);
 app.use('/api/hoja-ruta', hojaRutaRoutes);
 app.use('/api/documentos', documentoRoutes);
+app.use('/api/fichas', fichaRoutes);
+app.use('/api/auditorias', auditoriaRoutes);
+app.use('/api/reportes', reporteRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

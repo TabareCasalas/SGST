@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
+import { 
+  FaUsers, FaChevronDown, FaChevronUp, FaUserTie, FaUser, 
+  FaFileAlt, FaSync, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle,
+  FaSearch, FaTimes, FaPlus
+} from 'react-icons/fa';
+import { CreateGrupoModal } from './CreateGrupoModal';
 import './GruposList.css';
 
 interface UsuarioGrupo {
@@ -35,35 +41,67 @@ interface Grupo {
 export function GruposList() {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'mis' | 'otras' | 'todas'>('mis');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [selectedGrupo, setSelectedGrupo] = useState<Grupo | null>(null);
   const [showModifyMembers, setShowModifyMembers] = useState(false);
   const [docentes, setDocentes] = useState<Usuario[]>([]);
   const [estudiantes, setEstudiantes] = useState<Usuario[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [editFormData, setEditFormData] = useState({
     responsable_id: '',
     asistentes_ids: [] as string[],
     estudiantes_ids: [] as string[],
   });
   const { showToast } = useToast();
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, hasAccessLevel } = useAuth();
 
+  // Debounce del término de búsqueda
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Esperar 500ms después de que el usuario deje de escribir
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Cargar grupos cuando cambia el usuario, la pestaña o el término de búsqueda con debounce
   useEffect(() => {
     loadGrupos();
-  }, [user]); // Recargar cuando cambia el usuario
+  }, [user, activeTab, debouncedSearchTerm]); // Recargar cuando cambia el usuario, la pestaña o el término de búsqueda
 
   const loadGrupos = async () => {
     try {
       setLoading(true);
-      let data = await ApiService.getGrupos();
       
-      // Si es docente, filtrar solo grupos donde participa
+      // Preparar filtros
+      const filters: any = {};
+      if (debouncedSearchTerm && debouncedSearchTerm.trim() !== '') {
+        filters.search = debouncedSearchTerm.trim();
+      }
+      
+      let data = await ApiService.getGrupos(filters);
+      
+      // Filtrar según rol y pestaña activa
       if (hasRole('docente') && user?.grupos_participa) {
         const gruposIds = user.grupos_participa.map(gp => gp.id_grupo);
-        data = data.filter((g: Grupo) => gruposIds.includes(g.id_grupo));
+        
+        if (activeTab === 'mis') {
+          // Mis grupos: solo los grupos donde participa el docente
+          data = data.filter((g: Grupo) => gruposIds.includes(g.id_grupo));
+        } else if (activeTab === 'otras') {
+          // Otros grupos: grupos donde NO participa el docente
+          data = data.filter((g: Grupo) => !gruposIds.includes(g.id_grupo));
+        } else if (activeTab === 'todas') {
+          // Todas los grupos: todos los grupos (sin filtrar)
+          // data ya contiene todos los grupos
+        }
       }
-      // Admins ven todos los grupos
+      // Admins ven todos los grupos (sin filtros)
       
       setGrupos(data);
     } catch (err: any) {
@@ -75,6 +113,16 @@ export function GruposList() {
 
   const getMiembrosByRol = (grupo: Grupo, rol: string) => {
     return grupo.miembros_grupo?.filter(m => m.rol_en_grupo === rol) || [];
+  };
+
+  const toggleRow = (id: number) => {
+    const newExpanded = new Set(expandedRows);
+    if (expandedRows.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
   };
 
   const loadDocentes = async () => {
@@ -375,7 +423,65 @@ export function GruposList() {
   return (
     <div className="grupos-container">
       <div className="grupos-header">
-        <h2>👥 Grupos de Trabajo</h2>
+        <div>
+          <h2>👥 Grupos de Trabajo</h2>
+          {hasRole('docente') && (
+            <div className="tabs-container">
+              <button
+                className={`tab ${activeTab === 'mis' ? 'active' : ''}`}
+                onClick={() => setActiveTab('mis')}
+              >
+                Mis Grupos
+              </button>
+              <button
+                className={`tab ${activeTab === 'otras' ? 'active' : ''}`}
+                onClick={() => setActiveTab('otras')}
+              >
+                Otros Grupos
+              </button>
+              <button
+                className={`tab ${activeTab === 'todas' ? 'active' : ''}`}
+                onClick={() => setActiveTab('todas')}
+              >
+                Todos los Grupos
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="header-actions">
+          {hasRole('admin') && hasAccessLevel(1) && (
+            <button
+              className="btn-create"
+              onClick={() => setShowCreateForm(true)}
+              title="Crear nuevo grupo"
+            >
+              <FaPlus /> Crear Grupo
+            </button>
+          )}
+          <div className="search-container">
+            <FaSearch className="search-icon" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, descripción, miembros..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="clear-search-btn"
+                title="Limpiar búsqueda"
+              >
+                <FaTimes />
+              </button>
+            )}
+          </div>
+          <button onClick={loadGrupos} className="refresh-btn" disabled={loading} title="Actualizar">
+            <FaSync className={loading ? 'spinning' : ''} />
+            <span>Actualizar</span>
+          </button>
+        </div>
         <div className="stats">
           <div className="stat-card">
             <span className="stat-number">{grupos.length}</span>
@@ -388,101 +494,174 @@ export function GruposList() {
         </div>
       </div>
 
+      {/* Modal de creación */}
+      <CreateGrupoModal
+        isOpen={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
+        onSuccess={loadGrupos}
+      />
+
       {grupos.length === 0 ? (
-        <div className="no-grupos">
-          <p>📭 No hay grupos registrados</p>
-          <p className="hint">Crea un nuevo grupo para comenzar</p>
+        <div className="empty-state">
+          <p>No hay grupos registrados</p>
         </div>
       ) : (
-        <div className="grupos-grid">
-          {grupos.map((grupo) => {
-            const responsables = getMiembrosByRol(grupo, 'responsable');
-            const asistentes = getMiembrosByRol(grupo, 'asistente');
-            const estudiantes = getMiembrosByRol(grupo, 'estudiante');
+        <div className="table-container">
+          <table className="grupos-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th><FaUsers /> Nombre</th>
+                <th><FaUserTie /> Responsable</th>
+                <th><FaUsers /> Miembros</th>
+                <th><FaFileAlt /> Trámites</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {grupos.map((grupo) => {
+                const responsables = getMiembrosByRol(grupo, 'responsable');
+                const asistentes = getMiembrosByRol(grupo, 'asistente');
+                const estudiantes = getMiembrosByRol(grupo, 'estudiante');
+                const totalMiembros = grupo.miembros_grupo?.length || 0;
+                const totalTramites = grupo.tramites?.length || 0;
 
-            return (
-              <div 
-                key={grupo.id_grupo} 
-                className={`grupo-card ${!grupo.activo ? 'inactive' : ''}`}
-                onClick={() => setSelectedGrupo(grupo)}
-              >
-                <div className="grupo-card-header">
-                  <h3>{grupo.nombre}</h3>
-                  <span className={`estado-badge ${grupo.activo ? 'activo' : 'inactivo'}`}>
-                    {grupo.activo ? '✓ Activo' : '⏸ Inactivo'}
-                  </span>
-                </div>
-
-                {grupo.descripcion && (
-                  <p className="grupo-descripcion">{grupo.descripcion}</p>
-                )}
-
-                <div className="grupo-miembros">
-                  <div className="miembro-seccion">
-                    <h4>👨‍🏫 Responsable</h4>
-                    {responsables.length > 0 ? (
-                      responsables.map(r => (
-                        <div key={r.id_usuario_grupo} className="miembro-item responsable">
-                          {r.usuario.nombre}
+                return (
+                  <>
+                    <tr 
+                      key={grupo.id_grupo} 
+                      className={`table-row ${!grupo.activo ? 'inactive-row' : ''}`}
+                      onClick={() => toggleRow(grupo.id_grupo)}
+                    >
+                      <td className="expand-icon">
+                        {expandedRows.has(grupo.id_grupo) ? <FaChevronUp /> : <FaChevronDown />}
+                      </td>
+                      <td className="grupo-name">
+                        <strong>{grupo.nombre}</strong>
+                        {grupo.descripcion && (
+                          <small className="grupo-desc-preview">{grupo.descripcion}</small>
+                        )}
+                      </td>
+                      <td>
+                        {responsables.length > 0 ? (
+                          responsables[0].usuario.nombre
+                        ) : (
+                          <span className="no-data">Sin responsable</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="miembros-summary">
+                          <span className="miembros-count">{totalMiembros}</span>
+                          <small>
+                            {responsables.length > 0 && `${responsables.length} resp.`}
+                            {asistentes.length > 0 && `, ${asistentes.length} asis.`}
+                            {estudiantes.length > 0 && `, ${estudiantes.length} est.`}
+                          </small>
                         </div>
-                      ))
-                    ) : (
-                      <p className="no-miembros">Sin responsable</p>
+                      </td>
+                      <td>
+                        <span className="tramites-count">{totalTramites}</span>
+                      </td>
+                      <td>
+                        <span className={`estado-badge ${grupo.activo ? 'activo' : 'inactivo'}`}>
+                          {grupo.activo ? (
+                            <>
+                              <FaCheckCircle /> Activo
+                            </>
+                          ) : (
+                            <>
+                              <FaTimesCircle /> Inactivo
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <div className="action-buttons">
+                          {(hasRole('admin') || hasRole('docente')) && (
+                            <button
+                              onClick={() => {
+                                setSelectedGrupo(grupo);
+                                setShowModifyMembers(true);
+                                loadDocentes();
+                                loadEstudiantes();
+                              }}
+                              className="btn-icon btn-edit"
+                              title="Modificar Miembros"
+                            >
+                              <FaEdit />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedRows.has(grupo.id_grupo) && (
+                      <tr className="grupo-details-row">
+                        <td colSpan={7}>
+                          <div className="grupo-details">
+                            <div className="details-grid">
+                              <div className="detail-item full-width">
+                                <strong>Descripción:</strong>
+                                <span>{grupo.descripcion || 'Sin descripción'}</span>
+                              </div>
+                              <div className="detail-item">
+                                <strong>Total de Miembros:</strong>
+                                <span>{totalMiembros}</span>
+                              </div>
+                              <div className="detail-item">
+                                <strong>Total de Trámites:</strong>
+                                <span>{totalTramites}</span>
+                              </div>
+                              <div className="detail-item full-width">
+                                <strong>Responsable:</strong>
+                                {responsables.length > 0 ? (
+                                  <div className="miembro-detail responsable">
+                                    <FaUserTie />
+                                    <span>{responsables[0].usuario.nombre}</span>
+                                    <small>CI: {responsables[0].usuario.ci}</small>
+                                  </div>
+                                ) : (
+                                  <span className="no-data">Sin responsable asignado</span>
+                                )}
+                              </div>
+                              {asistentes.length > 0 && (
+                                <div className="detail-item full-width">
+                                  <strong>Asistentes ({asistentes.length}):</strong>
+                                  <div className="miembros-detail-list">
+                                    {asistentes.map(a => (
+                                      <div key={a.id_usuario_grupo} className="miembro-detail asistente">
+                                        <FaUserTie />
+                                        <span>{a.usuario.nombre}</span>
+                                        <small>CI: {a.usuario.ci}</small>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {estudiantes.length > 0 && (
+                                <div className="detail-item full-width">
+                                  <strong>Estudiantes ({estudiantes.length}):</strong>
+                                  <div className="miembros-detail-list">
+                                    {estudiantes.map(e => (
+                                      <div key={e.id_usuario_grupo} className="miembro-detail estudiante">
+                                        <FaUser />
+                                        <span>{e.usuario.nombre}</span>
+                                        <small>CI: {e.usuario.ci}</small>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </div>
-
-                  <div className="miembro-seccion">
-                    <h4>👥 Asistentes ({asistentes.length})</h4>
-                    {asistentes.length > 0 ? (
-                      <div className="miembros-list">
-                        {asistentes.slice(0, 3).map(a => (
-                          <div key={a.id_usuario_grupo} className="miembro-item asistente">
-                            {a.usuario.nombre}
-                          </div>
-                        ))}
-                        {asistentes.length > 3 && (
-                          <div className="miembro-item more">
-                            +{asistentes.length - 3} más
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="no-miembros">Sin asistentes</p>
-                    )}
-                  </div>
-
-                  {estudiantes.length > 0 && (
-                    <div className="miembro-seccion">
-                      <h4>👨‍🎓 Estudiantes ({estudiantes.length})</h4>
-                      <div className="miembros-list">
-                        {estudiantes.slice(0, 2).map(e => (
-                          <div key={e.id_usuario_grupo} className="miembro-item estudiante">
-                            {e.usuario.nombre}
-                          </div>
-                        ))}
-                        {estudiantes.length > 2 && (
-                          <div className="miembro-item more">
-                            +{estudiantes.length - 2} más
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grupo-stats">
-                  <div className="stat-item">
-                    <span className="stat-icon">📋</span>
-                    <span>{grupo.tramites?.length || 0} trámites</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-icon">👤</span>
-                    <span>{grupo.miembros_grupo?.length || 0} miembros</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

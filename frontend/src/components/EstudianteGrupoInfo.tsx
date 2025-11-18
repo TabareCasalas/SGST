@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ApiService } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
+import { FaUser, FaUserTie } from 'react-icons/fa';
 import './EstudianteGrupoInfo.css';
 
 interface Grupo {
@@ -21,6 +22,7 @@ interface Grupo {
     };
   }>;
 }
+
 
 export function EstudianteGrupoInfo() {
   const { user } = useAuth();
@@ -117,10 +119,13 @@ export function EstudianteGrupoInfo() {
           <div className="card-content">
             {responsables.length > 0 ? (
               responsables.map((responsable) => (
-                <div key={responsable.id_usuario_grupo} className="miembro-info">
-                  <div className="miembro-nombre">{responsable.usuario.nombre}</div>
-                  <div className="miembro-details">
-                    <span>📧 {responsable.usuario.correo}</span>
+                <div key={responsable.id_usuario_grupo} className="miembro-info miembro-responsable">
+                  <FaUserTie className="miembro-icon" />
+                  <div className="miembro-details-wrapper">
+                    <div className="miembro-nombre">{responsable.usuario.nombre}</div>
+                    <div className="miembro-details">
+                      <span>📧 {responsable.usuario.correo}</span>
+                    </div>
                   </div>
                 </div>
               ))
@@ -139,10 +144,13 @@ export function EstudianteGrupoInfo() {
             {asistentes.length > 0 ? (
               <div className="miembros-list">
                 {asistentes.map((asistente) => (
-                  <div key={asistente.id_usuario_grupo} className="miembro-item">
-                    <div className="miembro-nombre">{asistente.usuario.nombre}</div>
-                    <div className="miembro-details">
-                      <span>📧 {asistente.usuario.correo}</span>
+                  <div key={asistente.id_usuario_grupo} className="miembro-item miembro-asistente">
+                    <FaUserTie className="miembro-icon" />
+                    <div className="miembro-details-wrapper">
+                      <div className="miembro-nombre">{asistente.usuario.nombre}</div>
+                      <div className="miembro-details">
+                        <span>📧 {asistente.usuario.correo}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -166,16 +174,19 @@ export function EstudianteGrupoInfo() {
                   return (
                     <div 
                       key={estudiante.id_usuario_grupo} 
-                      className={`miembro-item ${esYo ? 'mi-propio' : ''}`}
+                      className={`miembro-item miembro-estudiante ${esYo ? 'mi-propio' : ''}`}
                     >
-                      <div className="miembro-nombre">
-                        {estudiante.usuario.nombre}
-                        {esYo && <span className="badge-yo">Tú</span>}
-                      </div>
-                      <div className="miembro-details">
-                        <span>CI: {estudiante.usuario.ci}</span>
-                        <span>📞 {estudiante.usuario.telefono}</span>
-                        <span>📧 {estudiante.usuario.correo}</span>
+                      <FaUser className="miembro-icon" />
+                      <div className="miembro-details-wrapper">
+                        <div className="miembro-nombre">
+                          {estudiante.usuario.nombre}
+                          {esYo && <span className="badge-yo">Tú</span>}
+                        </div>
+                        <div className="miembro-details">
+                          <span>CI: {estudiante.usuario.ci}</span>
+                          <span>📞 {estudiante.usuario.telefono}</span>
+                          <span>📧 {estudiante.usuario.correo}</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -186,6 +197,7 @@ export function EstudianteGrupoInfo() {
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

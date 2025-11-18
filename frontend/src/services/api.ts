@@ -20,7 +20,7 @@ export class ApiService {
   static async login(ci: string, password: string) {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify({ ci, password }),
     });
     
@@ -61,7 +61,7 @@ export class ApiService {
   static async refreshToken(refreshToken: string) {
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify({ refreshToken }),
     });
     
@@ -74,53 +74,95 @@ export class ApiService {
 
   // ============== TRÁMITES ==============
   
-  static async getTramites(filters?: { estado?: string; id_consultante?: number; id_grupo?: number }) {
+  static async getTramites(filters?: { estado?: string; id_consultante?: number; id_grupo?: number; search?: string }) {
     const params = new URLSearchParams();
     if (filters?.estado) params.append('estado', filters.estado);
     if (filters?.id_consultante) params.append('id_consultante', filters.id_consultante.toString());
     if (filters?.id_grupo) params.append('id_grupo', filters.id_grupo.toString());
+    if (filters?.search) params.append('search', filters.search);
     
     const url = `${API_URL}/tramites${params.toString() ? '?' + params : ''}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Error al obtener trámites');
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener trámites');
+    }
     return response.json();
   }
 
   static async getTramiteById(id: number) {
-    const response = await fetch(`${API_URL}/tramites/${id}`);
-    if (!response.ok) throw new Error('Error al obtener trámite');
+    const response = await fetch(`${API_URL}/tramites/${id}`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener trámite');
+    }
     return response.json();
   }
 
   static async createTramite(data: any) {
     const response = await fetch(`${API_URL}/tramites`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
+    const isJson = response.headers.get('Content-Type')?.includes('application/json');
+    const payload = isJson ? await response.json() : {};
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Error al crear trámite');
+      throw new Error(payload.error || 'Error al crear trámite');
     }
-    return response.json();
+    return {
+      accepted: response.status === 202,
+      ...payload,
+    };
   }
 
   static async updateTramite(id: number, data: any) {
     const response = await fetch(`${API_URL}/tramites/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Error al actualizar trámite');
-    return response.json();
+    const isJson = response.headers.get('Content-Type')?.includes('application/json');
+    const payload = isJson ? await response.json() : {};
+    if (!response.ok) {
+      throw new Error(payload.error || 'Error al actualizar trámite');
+    }
+    return {
+      accepted: response.status === 202,
+      ...payload,
+    };
   }
 
   static async deleteTramite(id: number) {
     const response = await fetch(`${API_URL}/tramites/${id}`, {
       method: 'DELETE',
+      headers: this.getAuthHeaders(),
     });
-    if (!response.ok) throw new Error('Error al eliminar trámite');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al eliminar trámite');
+    }
     return response.json();
+  }
+
+  static async aprobarTramite(id: number) {
+    const response = await fetch(`${API_URL}/tramites/${id}/aprobar`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+    const isJson = response.headers.get('Content-Type')?.includes('application/json');
+    const payload = isJson ? await response.json() : {};
+    if (!response.ok) {
+      throw new Error(payload.error || 'Error al aprobar trámite');
+    }
+    return {
+      accepted: response.status === 202,
+      ...payload,
+    };
   }
 
   // ============== USUARIOS ==============
@@ -152,7 +194,7 @@ export class ApiService {
   static async createUsuario(data: any) {
     const response = await fetch(`${API_URL}/usuarios`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -165,7 +207,7 @@ export class ApiService {
   static async updateUsuario(id: number, data: any) {
     const response = await fetch(`${API_URL}/usuarios/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -194,6 +236,30 @@ export class ApiService {
       const error = await response.json();
       throw new Error(error.error || 'Error al activar usuario');
     }
+    return response.json();
+  }
+
+  static async importUsuariosFromExcel(file: File) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+
+    const token = localStorage.getItem('accessToken');
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}/usuarios/importar`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al importar usuarios');
+    }
+
     return response.json();
   }
 
@@ -230,7 +296,7 @@ export class ApiService {
   static async createConsultante(data: any) {
     const response = await fetch(`${API_URL}/consultantes`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Error al crear consultante');
@@ -372,8 +438,14 @@ export class ApiService {
 
   // ============== GRUPOS ==============
 
-  static async getGrupos() {
-    const response = await fetch(`${API_URL}/grupos`);
+  static async getGrupos(filters?: { search?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    
+    const url = `${API_URL}/grupos${params.toString() ? '?' + params : ''}`;
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
     if (!response.ok) throw new Error('Error al obtener grupos');
     return response.json();
   }
@@ -392,7 +464,7 @@ export class ApiService {
   }) {
     const response = await fetch(`${API_URL}/grupos`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -405,7 +477,7 @@ export class ApiService {
   static async updateGrupo(id: number, data: any) {
     const response = await fetch(`${API_URL}/grupos/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -421,7 +493,7 @@ export class ApiService {
   }) {
     const response = await fetch(`${API_URL}/grupos/${id}/miembros`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -478,7 +550,7 @@ export class ApiService {
   static async completarTarea(tramiteId: number, aprobado: boolean, observaciones?: string) {
     const response = await fetch(`${API_URL}/tramites/${tramiteId}/completar-tarea`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify({ 
         aprobado, 
         observaciones,
@@ -508,6 +580,408 @@ export class ApiService {
     const response = await fetch(`${API_URL}/procesos/${processInstanceId}`);
     if (!response.ok) throw new Error('Error al obtener información del proceso');
     return response.json();
+  }
+
+  // ============== FICHAS ==============
+
+  static async getFichas(filters?: { estado?: string; id_docente?: number; id_consultante?: number; search?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.estado) params.append('estado', filters.estado);
+    if (filters?.id_docente) params.append('id_docente', filters.id_docente.toString());
+    if (filters?.id_consultante) params.append('id_consultante', filters.id_consultante.toString());
+    if (filters?.search) params.append('search', filters.search);
+    
+    const url = `${API_URL}/fichas${params.toString() ? '?' + params : ''}`;
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener fichas');
+    }
+    return response.json();
+  }
+
+  static async getFichasStandby() {
+    const response = await fetch(`${API_URL}/fichas/standby`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener fichas en standby');
+    }
+    return response.json();
+  }
+
+  static async getFichaById(id: number) {
+    const response = await fetch(`${API_URL}/fichas/${id}`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener ficha');
+    }
+    return response.json();
+  }
+
+  static async createFicha(data: {
+    id_consultante: number;
+    fecha_cita?: string;
+    hora_cita?: string;
+    tema_consulta: string;
+    id_docente: number;
+    observaciones?: string;
+    estado?: 'aprobado' | 'pendiente';
+  }) {
+    const response = await fetch(`${API_URL}/fichas`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al crear ficha');
+    }
+    return response.json();
+  }
+
+  static async aprobarFicha(id: number, fecha_cita: string, hora_cita: string) {
+    const response = await fetch(`${API_URL}/fichas/${id}/aprobar`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ fecha_cita, hora_cita }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al aprobar ficha');
+    }
+    return response.json();
+  }
+
+  static async asignarFichaAGrupo(id: number, id_grupo: number) {
+    const response = await fetch(`${API_URL}/fichas/${id}/asignar-grupo`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ id_grupo }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al asignar ficha a grupo');
+    }
+    return response.json();
+  }
+
+  static async iniciarTramiteDesdeFicha(id: number, observaciones?: string) {
+    const response = await fetch(`${API_URL}/fichas/${id}/iniciar-tramite`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ observaciones }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al iniciar trámite desde ficha');
+    }
+    return response.json();
+  }
+
+  static async updateFicha(id: number, data: {
+    fecha_cita?: string;
+    hora_cita?: string;
+    tema_consulta?: string;
+    id_docente?: number;
+    observaciones?: string;
+  }) {
+    const response = await fetch(`${API_URL}/fichas/${id}`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al actualizar ficha');
+    }
+    return response.json();
+  }
+
+  static async deleteFicha(id: number) {
+    const response = await fetch(`${API_URL}/fichas/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al eliminar ficha');
+    }
+    return response.json();
+  }
+
+  // ============== NOTIFICACIONES ==============
+
+  static async crearNotificacion(data: {
+    id_usuario: number;
+    id_usuario_emisor?: number;
+    titulo: string;
+    mensaje: string;
+    tipo?: 'info' | 'success' | 'warning' | 'error';
+    tipo_entidad?: string;
+    id_entidad?: number;
+    id_tramite?: number;
+  }) {
+    const response = await fetch(`${API_URL}/notificaciones`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al crear notificación');
+    }
+    
+    return response.json();
+  }
+
+  static async getMisNotificaciones(filters?: { leida?: boolean; limit?: number; offset?: number }) {
+    const params = new URLSearchParams();
+    if (filters?.leida !== undefined) params.append('leida', filters.leida.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.offset) params.append('offset', filters.offset.toString());
+    
+    const url = `${API_URL}/notificaciones/mis-notificaciones${params.toString() ? '?' + params : ''}`;
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener notificaciones');
+    }
+    
+    return response.json();
+  }
+
+  static async getContadorNoLeidas() {
+    const response = await fetch(`${API_URL}/notificaciones/contador`, {
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener contador');
+    }
+    
+    return response.json();
+  }
+
+  static async marcarLeida(id: number) {
+    const response = await fetch(`${API_URL}/notificaciones/${id}/leida`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al marcar notificación como leída');
+    }
+    
+    return response.json();
+  }
+
+  static async marcarTodasLeidas() {
+    const response = await fetch(`${API_URL}/notificaciones/marcar-todas-leidas`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al marcar todas las notificaciones como leídas');
+    }
+    
+    return response.json();
+  }
+
+  static async eliminarNotificacion(id: number) {
+    const response = await fetch(`${API_URL}/notificaciones/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al eliminar notificación');
+    }
+    
+    return response.json();
+  }
+
+  // ========== AUDITORÍAS ==========
+  static async getAuditorias(filters?: {
+    tipo_entidad?: string;
+    id_entidad?: number;
+    accion?: string;
+    id_usuario?: number;
+    fecha_desde?: string;
+    fecha_hasta?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.tipo_entidad) params.append('tipo_entidad', filters.tipo_entidad);
+    if (filters?.id_entidad) params.append('id_entidad', filters.id_entidad.toString());
+    if (filters?.accion) params.append('accion', filters.accion);
+    if (filters?.id_usuario) params.append('id_usuario', filters.id_usuario.toString());
+    if (filters?.fecha_desde) params.append('fecha_desde', filters.fecha_desde);
+    if (filters?.fecha_hasta) params.append('fecha_hasta', filters.fecha_hasta);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.offset) params.append('offset', filters.offset.toString());
+
+    const url = `${API_URL}/auditorias${params.toString() ? '?' + params : ''}`;
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener auditorías');
+    }
+
+    return response.json();
+  }
+
+  static async getAuditoriasByEntidad(tipo_entidad: string, id_entidad: number) {
+    const response = await fetch(`${API_URL}/auditorias/${tipo_entidad}/${id_entidad}`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener auditorías de entidad');
+    }
+
+    return response.json();
+  }
+
+  static async getAuditoriasStats(filters?: {
+    fecha_desde?: string;
+    fecha_hasta?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.fecha_desde) params.append('fecha_desde', filters.fecha_desde);
+    if (filters?.fecha_hasta) params.append('fecha_hasta', filters.fecha_hasta);
+
+    const url = `${API_URL}/auditorias/stats${params.toString() ? '?' + params : ''}`;
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener estadísticas de auditoría');
+    }
+
+    return response.json();
+  }
+
+  // ========== REPORTES ==========
+  static async getReporte(endpoint: string, filters?: {
+    fecha_desde?: string;
+    fecha_hasta?: string;
+    id_grupo?: number;
+    id_docente?: number;
+    id_consultante?: number;
+    id_estudiante?: number;
+    estado?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.fecha_desde) params.append('fecha_desde', filters.fecha_desde);
+    if (filters?.fecha_hasta) params.append('fecha_hasta', filters.fecha_hasta);
+    if (filters?.id_grupo) params.append('id_grupo', filters.id_grupo.toString());
+    if (filters?.id_docente) params.append('id_docente', filters.id_docente.toString());
+    if (filters?.id_consultante) params.append('id_consultante', filters.id_consultante.toString());
+    if (filters?.id_estudiante) params.append('id_estudiante', filters.id_estudiante.toString());
+    if (filters?.estado) params.append('estado', filters.estado);
+
+    const url = `${API_URL}/reportes/${endpoint}${params.toString() ? '?' + params : ''}`;
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al obtener reporte');
+    }
+
+    return response.json();
+  }
+
+  // Reportes de Trámites
+  static async getTramitesPorEstado(filters?: any) {
+    return this.getReporte('tramites/por-estado', filters);
+  }
+
+  static async getTiempoPromedioResolucion(filters?: any) {
+    return this.getReporte('tramites/tiempo-promedio', filters);
+  }
+
+  static async getTramitesPorDocente(filters?: any) {
+    return this.getReporte('tramites/por-docente', filters);
+  }
+
+  static async getTramitesPorGrupo(filters?: any) {
+    return this.getReporte('tramites/por-grupo', filters);
+  }
+
+  static async getTramitesPorConsultante(filters?: any) {
+    return this.getReporte('tramites/por-consultante', filters);
+  }
+
+  static async getAnalisisDesistimientos(filters?: any) {
+    return this.getReporte('tramites/desistimientos', filters);
+  }
+
+  static async getTramitesAntiguos(filters?: any) {
+    return this.getReporte('tramites/antiguos', filters);
+  }
+
+  // Reportes de Fichas
+  static async getFichasPorEstado(filters?: any) {
+    return this.getReporte('fichas/por-estado', filters);
+  }
+
+  static async getTiemposProcesamientoFichas(filters?: any) {
+    return this.getReporte('fichas/tiempos-procesamiento', filters);
+  }
+
+  static async getFichasPorDocente(filters?: any) {
+    return this.getReporte('fichas/por-docente', filters);
+  }
+
+  // Reportes de Grupos
+  static async getActividadPorGrupo(filters?: any) {
+    return this.getReporte('grupos/actividad', filters);
+  }
+
+  // Reportes de Estudiantes
+  static async getEstudiantesActivos(filters?: any) {
+    return this.getReporte('estudiantes/activos', filters);
+  }
+
+  static async getDocumentosPorEstudiante(filters?: any) {
+    return this.getReporte('estudiantes/documentos', filters);
+  }
+
+  // Métricas de Rendimiento
+  static async getDashboardMetricas(filters?: any) {
+    return this.getReporte('metricas/dashboard', filters);
+  }
+
+  static async getEvolucionTemporal(filters?: any) {
+    return this.getReporte('metricas/evolucion-temporal', filters);
+  }
+
+  static async getActuacionesHojaRuta(filters?: any) {
+    return this.getReporte('metricas/actuaciones', filters);
   }
 }
 
