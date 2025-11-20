@@ -39,16 +39,14 @@ app.use(cors({
     // Permitir requests sin origin (como Postman o aplicaciones móviles)
     if (!origin) return callback(null, true);
     
-    // Permitir si está en la lista o si es desarrollo
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(null, true); // Permitir todos en producción por ahora
-    }
+    // Permitir todos los orígenes en producción (más permisivo)
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200, // Algunos navegadores antiguos (IE11) requieren esto
 }));
 
 app.use(express.json());
