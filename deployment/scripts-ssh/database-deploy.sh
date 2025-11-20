@@ -16,11 +16,11 @@ POSTGRES_VERSION="15"
 
 # Actualizar sistema
 echo "Actualizando sistema..."
-sudo apt update && sudo apt upgrade -y
+apt update && apt upgrade -y
 
-# Instalar dependencias
+# Instalar dependencias (incluyendo git)
 echo "Instalando dependencias..."
-sudo apt install -y curl wget git postgresql-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION}
+apt install -y curl wget git postgresql-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION}
 
 # Clonar repositorio
 echo "Clonando repositorio..."
@@ -29,10 +29,58 @@ cd $TEMP_DIR
 git clone -b $GIT_BRANCH $GIT_REPO sgst
 cd sgst
 
-# Ejecutar script de instalación
+# Verificar que el directorio existe
+if [ ! -d "deployment/servidor-database" ]; then
+    echo "ERROR: No se encontró el directorio deployment/servidor-database"
+    echo "Verificando estructura del repositorio..."
+    ls -la
+    ls -la deployment/ 2>/dev/null || echo "Directorio deployment no existe"
+    exit 1
+fi
+
+# Ejecutar instalación directamente (sin usar install.sh externo)
 echo "Ejecutando instalación..."
-chmod +x deployment/servidor-database/install.sh
-sudo DB_PASSWORD="$DB_PASSWORD" bash deployment/servidor-database/install.sh
+
+# Crear usuario y base de datos
+echo "Creando usuario y bases de datos..."
+runuser -l postgres -c "psql -c \"CREATE USER ${DB_USER:-sgst_user} WITH PASSWORD '${DB_PASSWORD}';\" 2>/dev/null || psql -c \"ALTER USER ${DB_USER:-sgst_user} WITH PASSWORD '${DB_PASSWORD}';\""
+
+runuser -l postgres -c "psql -c \"CREATE DATABASE ${DB_NAME:-sgst_db} OWNER ${DB_USER:-sgst_user};\" 2>/dev/null || true"
+runuser -l postgres -c "psql -c \"CREATE DATABASE ${CAMUNDA_DB:-camunda_db} OWNER ${DB_USER:-sgst_user};\" 2>/dev/null || true"
+
+runuser -l postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME:-sgst_db} TO ${DB_USER:-sgst_user};\""
+runuser -l postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${CAMUNDA_DB:-camunda_db} TO ${DB_USER:-sgst_user};\""
+
+# Configurar PostgreSQL para aceptar conexiones remotas
+echo "Configurando acceso remoto..."
+if ! grep -q "listen_addresses = '*'" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf; then
+    sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf
+    sed -i "s/listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf
+fi
+
+# Configurar pg_hba.conf
+echo "Configurando pg_hba.conf..."
+if ! grep -q "35.199.81.198" /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf; then
+    echo "" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
+    echo "# Conexiones desde Backend SGST" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
+    echo "host    all             all             35.199.81.198/32         md5" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
+    echo "" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
+    echo "# Conexiones desde Camunda" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
+    echo "host    all             all             35.198.59.98/32         md5" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
+fi
+
+# Reiniciar PostgreSQL
+echo "Reiniciando PostgreSQL..."
+systemctl restart postgresql
+systemctl enable postgresql
+
+# Crear extensiones
+runuser -l postgres -c "psql -d ${DB_NAME:-sgst_db} -c \"CREATE EXTENSION IF NOT EXISTS uuid-ossp;\"" 2>/dev/null || true
+runuser -l postgres -c "psql -d ${CAMUNDA_DB:-camunda_db} -c \"CREATE EXTENSION IF NOT EXISTS uuid-ossp;\"" 2>/dev/null || true
+
+# Verificar instalación
+echo "Verificando instalación..."
+runuser -l postgres -c "psql -c \"\\l\"" | grep -E "${DB_NAME:-sgst_db}|${CAMUNDA_DB:-camunda_db}" || true
 
 # Limpiar
 cd /
@@ -42,9 +90,12 @@ echo ""
 echo "========================================="
 echo "Deployment completado"
 echo "========================================="
-echo "IMPORTANTE:"
-echo "1. Configura pg_hba.conf con las IPs del backend y camunda"
-echo "2. Configura firewall de Google Cloud"
-echo "3. Cambia la contraseña por defecto"
+echo "Base de datos: ${DB_NAME:-sgst_db}"
+echo "Usuario: ${DB_USER:-sgst_user}"
+echo "Contraseña: ${DB_PASSWORD}"
+echo ""
+echo "pg_hba.conf configurado con IPs:"
+echo "  - Backend: 35.199.81.198"
+echo "  - Camunda: 35.198.59.98"
 echo "========================================="
 

@@ -8,7 +8,7 @@
 **IP: 35.198.27.56**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/database-deploy.sh | bash
+apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/database-deploy.sh
 ```
 
 **Después del deployment, configurar acceso remoto:**
@@ -23,7 +23,7 @@ echo -e "\n# Conexiones desde Backend SGST\nhost    all             all         
 **IP: 35.199.81.198**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/backend-deploy.sh | bash
+apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/backend-deploy.sh
 ```
 
 **Verificar:**
@@ -38,7 +38,7 @@ sudo systemctl status sgst-backend && curl http://localhost:3001/health
 **IP: 34.39.214.142**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/frontend-deploy.sh | bash
+apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/frontend-deploy.sh
 ```
 
 **Verificar:**
@@ -53,7 +53,7 @@ sudo systemctl status nginx && curl http://localhost
 **IP: 35.198.59.98**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/camunda-deploy.sh | bash
+apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/camunda-deploy.sh
 ```
 
 **Verificar:**
@@ -68,12 +68,12 @@ sudo -u sgst docker-compose -f /opt/sgst-camunda/docker-compose.yml ps && curl h
 
 ### Backend:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/backend-deploy.sh | bash
+cd /tmp && rm -rf sgst && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/backend-deploy.sh
 ```
 
 ### Frontend:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/frontend-deploy.sh | bash
+cd /tmp && rm -rf sgst && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/frontend-deploy.sh
 ```
 
 ### Camunda (solo orchestrator):
