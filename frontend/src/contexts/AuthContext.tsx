@@ -59,7 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (ci: string, password?: string) => {
     try {
       // Usar autenticación real del backend
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ci, password: password || 'password123' }), // Usar contraseña por defecto si no se proporciona
@@ -119,7 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          await fetch('http://localhost:3001/api/auth/logout', {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+          await fetch(`${apiUrl}/api/auth/logout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken }),
