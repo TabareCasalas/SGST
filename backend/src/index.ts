@@ -25,8 +25,27 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware CORS con configuración más permisiva para desarrollo
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://34.39.214.142',
+  'http://34.39.214.142:80',
+  process.env.FRONTEND_URL || 'http://34.39.214.142',
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (como Postman o aplicaciones móviles)
+    if (!origin) return callback(null, true);
+    
+    // Permitir si está en la lista o si es desarrollo
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(null, true); // Permitir todos en producción por ahora
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
