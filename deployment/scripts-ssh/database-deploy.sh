@@ -27,7 +27,19 @@ $SUDO apt update && $SUDO apt upgrade -y
 
 # Instalar dependencias (incluyendo git)
 echo "Instalando dependencias..."
-$SUDO apt install -y curl wget git postgresql-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION}
+$SUDO apt install -y curl wget git
+
+# Agregar repositorio oficial de PostgreSQL
+echo "Agregando repositorio oficial de PostgreSQL..."
+$SUDO apt install -y lsb-release gnupg2
+$SUDO mkdir -p /etc/apt/keyrings
+$SUDO wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | $SUDO gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg
+$SUDO sh -c 'echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+$SUDO apt update
+
+# Instalar PostgreSQL
+echo "Instalando PostgreSQL ${POSTGRES_VERSION}..."
+$SUDO apt install -y postgresql-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION}
 
 # Clonar repositorio
 echo "Clonando repositorio..."
