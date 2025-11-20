@@ -6,6 +6,12 @@ const API_URL = envApiUrl.startsWith('/')
   ? envApiUrl  // URL relativa: usar tal cual (ej: /api)
   : (envApiUrl.endsWith('/api') ? envApiUrl : `${envApiUrl}/api`); // URL absoluta: asegurar /api
 
+// Debug: solo en desarrollo
+if (import.meta.env.DEV) {
+  console.log('🔍 [ApiService] VITE_API_URL:', import.meta.env.VITE_API_URL);
+  console.log('🔍 [ApiService] API_URL construida:', API_URL);
+}
+
 export class ApiService {
   // Helper para obtener headers con token
   private static getAuthHeaders(): HeadersInit {
@@ -24,7 +30,14 @@ export class ApiService {
   // ============== AUTENTICACIÓN ==============
 
   static async login(ci: string, password: string) {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    // Construir URL: API_URL ya incluye /api si es necesario
+    const loginUrl = `${API_URL}/auth/login`;
+    
+    console.log('🔍 [ApiService.login] VITE_API_URL:', import.meta.env.VITE_API_URL);
+    console.log('🔍 [ApiService.login] API_URL:', API_URL);
+    console.log('🔍 [ApiService.login] URL completa:', loginUrl);
+    
+    const response = await fetch(loginUrl, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ ci, password }),
