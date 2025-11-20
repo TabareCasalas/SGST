@@ -22,7 +22,7 @@ JWT_SECRET="${JWT_SECRET:-change_me}"
 REFRESH_SECRET="${REFRESH_SECRET:-change_me}"
 
 # Valores por defecto si no están configurados (para deployment automático)
-DB_HOST="${DB_HOST:-35.199.81.198}"
+DB_HOST="${DB_HOST:-35.198.27.56}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-sgst_db}"
 DB_USER="${DB_USER:-sgst_user}"

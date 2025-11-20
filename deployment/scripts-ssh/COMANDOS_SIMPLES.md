@@ -5,7 +5,7 @@
 ---
 
 ## 📋 Servidor 1: Base de Datos (PostgreSQL)
-**IP: 35.199.81.198**
+**IP: 35.198.27.56**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/database-deploy.sh | bash
@@ -85,7 +85,7 @@ cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sg
 
 ## 📝 Orden de Ejecución
 
-1. ✅ Base de Datos (35.199.81.198)
+1. ✅ Base de Datos (35.198.27.56)
 2. ✅ Camunda (35.198.59.98)
 3. ✅ Backend (35.199.81.198)
 4. ✅ Frontend (34.39.214.142)

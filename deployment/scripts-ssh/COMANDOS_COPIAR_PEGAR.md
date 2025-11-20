@@ -5,7 +5,7 @@
 ---
 
 ## 📋 Servidor 1: Base de Datos (PostgreSQL)
-**IP: 35.199.81.198**
+**IP: 35.198.27.56**
 
 ### Comando completo (copiar y pegar todo):
 
@@ -44,7 +44,7 @@ sudo systemctl status postgresql
 ### Comando completo (copiar y pegar todo):
 
 ```bash
-export DB_HOST="35.199.81.198" && export DB_PORT="5432" && export DB_NAME="sgst_db" && export DB_USER="sgst_user" && export DB_PASSWORD="sgst_password" && export ORCHESTRATOR_URL="http://35.198.59.98:3002" && export ORCHESTRATOR_TOKEN="aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4" && export JWT_SECRET="xY9zA2bC5dE8fG1hI4jK7lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0" && export REFRESH_SECRET="mN6pQ9rS2tU5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9fG2hI5jK8lM1nO4pQ7rS0tU3vW6xY9zA2" && curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/backend-deploy.sh | bash
+export DB_HOST="35.198.27.56" && export DB_PORT="5432" && export DB_NAME="sgst_db" && export DB_USER="sgst_user" && export DB_PASSWORD="sgst_password" && export ORCHESTRATOR_URL="http://35.198.59.98:3002" && export ORCHESTRATOR_TOKEN="aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4" && export JWT_SECRET="xY9zA2bC5dE8fG1hI4jK7lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0" && export REFRESH_SECRET="mN6pQ9rS2tU5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9fG2hI5jK8lM1nO4pQ7rS0tU3vW6xY9zA2" && curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/backend-deploy.sh | bash
 ```
 
 ### Verificar después del deployment:
@@ -82,7 +82,7 @@ curl http://localhost
 ### Comando completo (copiar y pegar todo):
 
 ```bash
-export DB_HOST="35.199.81.198" && export DB_PORT="5432" && export DB_NAME="camunda_db" && export DB_USER="sgst_user" && export DB_PASSWORD="sgst_password" && export BACKEND_URL="http://35.199.81.198:3001" && export ORCHESTRATOR_TOKEN="aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4" && curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/camunda-deploy.sh | bash
+export DB_HOST="35.198.27.56" && export DB_PORT="5432" && export DB_NAME="camunda_db" && export DB_USER="sgst_user" && export DB_PASSWORD="sgst_password" && export BACKEND_URL="http://35.199.81.198:3001" && export ORCHESTRATOR_TOKEN="aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4" && curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/camunda-deploy.sh | bash
 ```
 
 ### Verificar después del deployment:
@@ -101,7 +101,7 @@ curl http://localhost:3002/health
 ### Backend:
 
 ```bash
-export DB_HOST="35.199.81.198" && export DB_PORT="5432" && export DB_NAME="sgst_db" && export DB_USER="sgst_user" && export DB_PASSWORD="sgst_password" && export ORCHESTRATOR_URL="http://35.198.59.98:3002" && export ORCHESTRATOR_TOKEN="aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4" && export JWT_SECRET="xY9zA2bC5dE8fG1hI4jK7lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0" && export REFRESH_SECRET="mN6pQ9rS2tU5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9fG2hI5jK8lM1nO4pQ7rS0tU3vW6xY9zA2" && curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/backend-deploy.sh | bash
+export DB_HOST="35.198.27.56" && export DB_PORT="5432" && export DB_NAME="sgst_db" && export DB_USER="sgst_user" && export DB_PASSWORD="sgst_password" && export ORCHESTRATOR_URL="http://35.198.59.98:3002" && export ORCHESTRATOR_TOKEN="aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4" && export JWT_SECRET="xY9zA2bC5dE8fG1hI4jK7lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0" && export REFRESH_SECRET="mN6pQ9rS2tU5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9fG2hI5jK8lM1nO4pQ7rS0tU3vW6xY9zA2" && curl -fsSL https://raw.githubusercontent.com/TabareCasalas/SGST/taba-branch/deployment/scripts-ssh/backend-deploy.sh | bash
 ```
 
 ### Frontend:
@@ -122,7 +122,7 @@ cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sg
 
 **IMPORTANTE**: Ejecuta los comandos en este orden:
 
-1. ✅ **Base de Datos** (35.199.81.198) - Primero
+1. ✅ **Base de Datos** (35.198.27.56) - Primero
 2. ✅ **Camunda** (35.198.59.98) - Segundo
 3. ✅ **Backend** (35.199.81.198) - Tercero
 4. ✅ **Frontend** (34.39.214.142) - Cuarto
@@ -135,7 +135,7 @@ Después de desplegar todos los servidores, verifica:
 
 ```bash
 # Base de datos
-ssh usuario@35.199.81.198 "sudo systemctl status postgresql"
+ssh usuario@35.198.27.56 "sudo systemctl status postgresql"
 
 # Backend
 curl http://35.199.81.198:3001/health
