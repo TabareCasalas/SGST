@@ -227,7 +227,7 @@ export const fichaController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'ficha',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'listar',
           detalles: `Listado de fichas consultado${filtros.length > 0 ? `. Filtros: ${filtros.join(', ')}` : ''}`,
         });

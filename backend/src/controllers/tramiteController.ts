@@ -144,7 +144,7 @@ export const tramiteController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'tramite',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'listar',
           detalles: `Listado de trámites consultado${filtros.length > 0 ? `. Filtros: ${filtros.join(', ')}` : ''}`,
         });
@@ -327,7 +327,7 @@ export const tramiteController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: user.id,
           tipo_entidad: 'tramite',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'crear',
           detalles: `Solicitud de creación de trámite enviada a Camunda para carpeta ${num_carpeta}. Estado inicial propuesto: ${estadoInicial}`,
         });

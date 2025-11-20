@@ -38,7 +38,7 @@ export const consultanteController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'consultante',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'listar',
           detalles: `Listado de consultantes consultado${search ? ` con filtro: ${search}` : ''}`,
         });

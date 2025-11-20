@@ -161,7 +161,7 @@ export async function getByUsuario(req: AuthRequest, res: Response) {
       await AuditoriaService.crearDesdeRequest(req, {
         id_usuario: userId,
         tipo_entidad: 'notificacion',
-        id_entidad: null,
+        id_entidad: undefined,
         accion: 'listar',
         detalles: `Notificaciones del usuario ${id_usuario} consultadas${leida !== undefined ? ` (filtro: leida=${leida})` : ''}`,
       });
@@ -231,7 +231,7 @@ export async function getMisNotificaciones(req: AuthRequest, res: Response) {
       await AuditoriaService.crearDesdeRequest(req, {
         id_usuario: user.id,
         tipo_entidad: 'notificacion',
-        id_entidad: null,
+        id_entidad: undefined,
         accion: 'consultar',
         detalles: `Mis notificaciones consultadas${leida !== undefined ? ` (filtro: leida=${leida})` : ''}. Total: ${total}, No leídas: ${noLeidas}`,
       });
@@ -329,7 +329,7 @@ export async function marcarTodasLeidas(req: AuthRequest, res: Response) {
       await AuditoriaService.crearDesdeRequest(req, {
         id_usuario: user.id,
         tipo_entidad: 'notificacion',
-        id_entidad: null,
+        id_entidad: undefined,
         accion: 'modificar',
         detalles: `${resultado.count} notificaciones marcadas como leídas`,
       });
@@ -413,7 +413,7 @@ export async function getContadorNoLeidas(req: AuthRequest, res: Response) {
       await AuditoriaService.crearDesdeRequest(req, {
         id_usuario: user.id,
         tipo_entidad: 'notificacion',
-        id_entidad: null,
+        id_entidad: undefined,
         accion: 'consultar',
         detalles: `Contador de notificaciones no leídas consultado: ${contador}`,
       });

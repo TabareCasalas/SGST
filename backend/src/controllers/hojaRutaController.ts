@@ -32,7 +32,7 @@ export const hojaRutaController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'hoja_ruta',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'listar',
           detalles: `Hoja de ruta del trámite ${id_tramite} consultada`,
         });

@@ -55,7 +55,7 @@ export const usuarioController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'usuario',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'listar',
           detalles: `Listado de usuarios consultado${filtros.length > 0 ? `. Filtros: ${filtros.join(', ')}` : ''}`,
         });
@@ -624,7 +624,7 @@ export const usuarioController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'usuario',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'importar',
           detalles: `Importación de usuarios desde Excel: ${results.exitosos} exitosos, ${results.errores} errores de ${results.total} total`,
         });

@@ -363,7 +363,7 @@ export const reporteController = {
 
       const total = todos.length;
       const totalDesistidos = desistidos.length;
-      const tasaDesistimiento = total > 0 ? ((totalDesistidos / total) * 100).toFixed(2) : 0;
+      const tasaDesistimiento = total > 0 ? ((totalDesistidos / total) * 100).toFixed(2) : '0';
 
       // Motivos más frecuentes
       const motivos: any = {};
@@ -386,7 +386,7 @@ export const reporteController = {
       });
 
       res.json({
-        tasaDesistimiento: parseFloat(tasaDesistimiento),
+        tasaDesistimiento: parseFloat(String(tasaDesistimiento)),
         total,
         totalDesistidos,
         motivos,
@@ -847,11 +847,11 @@ export const reporteController = {
 
       const tasaExito = (tramitesFinalizados + tramitesDesistidos) > 0
         ? ((tramitesFinalizados / (tramitesFinalizados + tramitesDesistidos)) * 100).toFixed(2)
-        : 0;
+        : '0';
 
       const tasaConversion = fichas > 0
         ? ((fichasIniciadas / fichas) * 100).toFixed(2)
-        : 0;
+        : '0';
 
       // Tiempo promedio de resolución
       const tramitesConFecha = await prisma.tramite.findMany({
@@ -890,8 +890,8 @@ export const reporteController = {
           docentes: docentes,
         },
         metricas: {
-          tasaExito: parseFloat(tasaExito),
-          tasaConversion: parseFloat(tasaConversion),
+          tasaExito: parseFloat(String(tasaExito)),
+          tasaConversion: parseFloat(String(tasaConversion)),
           tiempoPromedioResolucion: Math.round(tiempoPromedio * 100) / 100,
         },
       });

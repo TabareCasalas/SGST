@@ -79,7 +79,7 @@ export const grupoController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'grupo',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'listar',
           detalles: `Listado de grupos consultado${search ? ` con filtro: ${search}` : ''}`,
         });

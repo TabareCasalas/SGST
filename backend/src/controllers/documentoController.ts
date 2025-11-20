@@ -83,7 +83,7 @@ export const documentoController = {
         await AuditoriaService.crearDesdeRequest(req, {
           id_usuario: userId,
           tipo_entidad: 'documento',
-          id_entidad: null,
+          id_entidad: undefined,
           accion: 'listar',
           detalles: `Documentos del trámite ${id_tramite} consultados`,
         });

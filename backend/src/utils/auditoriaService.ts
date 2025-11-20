@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 interface CrearAuditoriaParams {
   id_usuario?: number;
   tipo_entidad: string; // 'usuario', 'tramite', 'grupo', 'ficha', etc.
-  id_entidad?: number; // ID de la entidad modificada
+  id_entidad?: number | null; // ID de la entidad modificada
   accion: string; // 'crear', 'modificar', 'eliminar', 'desactivar', etc.
   detalles?: string; // Detalles del cambio
   ip_address?: string;
