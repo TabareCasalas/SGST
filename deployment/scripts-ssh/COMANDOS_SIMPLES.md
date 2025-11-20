@@ -8,7 +8,7 @@
 **IP: 35.198.27.56**
 
 ```bash
-apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/database-deploy.sh
+sudo apt update && sudo apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/database-deploy.sh
 ```
 
 **Nota:** El script configura automáticamente:
@@ -23,7 +23,7 @@ apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://
 **IP: 35.199.81.198**
 
 ```bash
-apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/backend-deploy.sh
+sudo apt update && sudo apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/backend-deploy.sh
 ```
 
 **Verificar:**
@@ -38,7 +38,7 @@ sudo systemctl status sgst-backend && curl http://localhost:3001/health
 **IP: 34.39.214.142**
 
 ```bash
-apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/frontend-deploy.sh
+sudo apt update && sudo apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/frontend-deploy.sh
 ```
 
 **Verificar:**
@@ -53,7 +53,7 @@ sudo systemctl status nginx && curl http://localhost
 **IP: 35.198.59.98**
 
 ```bash
-apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/camunda-deploy.sh
+sudo apt update && sudo apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/camunda-deploy.sh
 ```
 
 **Verificar:**

@@ -14,13 +14,20 @@ GIT_BRANCH="taba-branch"
 DB_PASSWORD="${DB_PASSWORD:-sgst_password}"
 POSTGRES_VERSION="15"
 
+# Detectar si necesitamos sudo
+if [ "$EUID" -ne 0 ]; then
+    SUDO="sudo"
+else
+    SUDO=""
+fi
+
 # Actualizar sistema
 echo "Actualizando sistema..."
-apt update && apt upgrade -y
+$SUDO apt update && $SUDO apt upgrade -y
 
 # Instalar dependencias (incluyendo git)
 echo "Instalando dependencias..."
-apt install -y curl wget git postgresql-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION}
+$SUDO apt install -y curl wget git postgresql-${POSTGRES_VERSION} postgresql-contrib-${POSTGRES_VERSION}
 
 # Clonar repositorio
 echo "Clonando repositorio..."
@@ -54,25 +61,25 @@ runuser -l postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${CAMUNDA_DB:
 # Configurar PostgreSQL para aceptar conexiones remotas
 echo "Configurando acceso remoto..."
 if ! grep -q "listen_addresses = '*'" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf; then
-    sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf
-    sed -i "s/listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf
+    $SUDO sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf
+    $SUDO sed -i "s/listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/${POSTGRES_VERSION}/main/postgresql.conf
 fi
 
 # Configurar pg_hba.conf
 echo "Configurando pg_hba.conf..."
 if ! grep -q "35.199.81.198" /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf; then
-    echo "" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
-    echo "# Conexiones desde Backend SGST" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
-    echo "host    all             all             35.199.81.198/32         md5" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
-    echo "" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
-    echo "# Conexiones desde Camunda" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
-    echo "host    all             all             35.198.59.98/32         md5" >> /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf
+    echo "" | $SUDO tee -a /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf > /dev/null
+    echo "# Conexiones desde Backend SGST" | $SUDO tee -a /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf > /dev/null
+    echo "host    all             all             35.199.81.198/32         md5" | $SUDO tee -a /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf > /dev/null
+    echo "" | $SUDO tee -a /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf > /dev/null
+    echo "# Conexiones desde Camunda" | $SUDO tee -a /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf > /dev/null
+    echo "host    all             all             35.198.59.98/32         md5" | $SUDO tee -a /etc/postgresql/${POSTGRES_VERSION}/main/pg_hba.conf > /dev/null
 fi
 
 # Reiniciar PostgreSQL
 echo "Reiniciando PostgreSQL..."
-systemctl restart postgresql
-systemctl enable postgresql
+$SUDO systemctl restart postgresql
+$SUDO systemctl enable postgresql
 
 # Crear extensiones
 runuser -l postgres -c "psql -d ${DB_NAME:-sgst_db} -c \"CREATE EXTENSION IF NOT EXISTS uuid-ossp;\"" 2>/dev/null || true
