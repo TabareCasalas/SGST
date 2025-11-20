@@ -1,4 +1,9 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Construir API_URL: si VITE_API_URL es relativo (/api), usarlo tal cual
+// Si es absoluto (http://...), asegurarse de que termine en /api
+const envApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = envApiUrl.startsWith('/') 
+  ? envApiUrl  // URL relativa, usar tal cual (ej: /api)
+  : (envApiUrl.endsWith('/api') ? envApiUrl : `${envApiUrl}/api`); // URL absoluta, asegurar /api
 
 export class ApiService {
   // Helper para obtener headers con token
