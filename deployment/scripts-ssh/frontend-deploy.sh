@@ -13,11 +13,8 @@ GIT_REPO="https://github.com/TabareCasalas/SGST.git"
 GIT_BRANCH="taba-branch"
 BACKEND_URL="${BACKEND_URL:-http://localhost:3001}"
 
-# Verificar que la variable esté configurada
-if [ "$BACKEND_URL" = "http://localhost:3001" ]; then
-    echo "ADVERTENCIA: BACKEND_URL no configurado, usando localhost:3001"
-    echo "Para configurar: export BACKEND_URL='http://<IP_BACKEND>:3001'"
-fi
+# Valor por defecto si no está configurado
+BACKEND_URL="${BACKEND_URL:-http://35.199.81.198:3001}"
 
 # Actualizar sistema
 echo "Actualizando sistema..."

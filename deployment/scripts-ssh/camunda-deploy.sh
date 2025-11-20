@@ -19,16 +19,14 @@ DB_PASSWORD="${DB_PASSWORD:-change_me}"
 BACKEND_URL="${BACKEND_URL:-http://localhost:3001}"
 ORCHESTRATOR_TOKEN="${ORCHESTRATOR_TOKEN:-change_me}"
 
-# Verificar que las variables estén configuradas
-if [ "$DB_PASSWORD" = "change_me" ] || [ "$ORCHESTRATOR_TOKEN" = "change_me" ]; then
-    echo "ERROR: Debes configurar las variables de entorno antes de ejecutar"
-    echo "Ejemplo:"
-    echo "  export DB_HOST='10.0.0.1'"
-    echo "  export DB_PASSWORD='tu_password'"
-    echo "  export BACKEND_URL='http://10.0.0.2:3001'"
-    echo "  export ORCHESTRATOR_TOKEN='tu_token'"
-    exit 1
-fi
+# Valores por defecto si no están configurados (para deployment automático)
+DB_HOST="${DB_HOST:-35.199.81.198}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-camunda_db}"
+DB_USER="${DB_USER:-sgst_user}"
+DB_PASSWORD="${DB_PASSWORD:-sgst_password}"
+BACKEND_URL="${BACKEND_URL:-http://35.199.81.198:3001}"
+ORCHESTRATOR_TOKEN="${ORCHESTRATOR_TOKEN:-aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4}"
 
 # Actualizar sistema
 echo "Actualizando sistema..."

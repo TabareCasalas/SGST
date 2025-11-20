@@ -11,7 +11,7 @@ echo "========================================="
 # Variables configurables
 GIT_REPO="https://github.com/TabareCasalas/SGST.git"
 GIT_BRANCH="taba-branch"
-DB_PASSWORD="${DB_PASSWORD:-sgst_password_change_me}"
+DB_PASSWORD="${DB_PASSWORD:-sgst_password}"
 POSTGRES_VERSION="15"
 
 # Actualizar sistema

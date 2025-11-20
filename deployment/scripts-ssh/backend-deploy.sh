@@ -21,18 +21,16 @@ ORCHESTRATOR_TOKEN="${ORCHESTRATOR_TOKEN:-change_me}"
 JWT_SECRET="${JWT_SECRET:-change_me}"
 REFRESH_SECRET="${REFRESH_SECRET:-change_me}"
 
-# Verificar que las variables estén configuradas
-if [ "$DB_PASSWORD" = "change_me" ] || [ "$JWT_SECRET" = "change_me" ]; then
-    echo "ERROR: Debes configurar las variables de entorno antes de ejecutar"
-    echo "Ejemplo:"
-    echo "  export DB_HOST='10.0.0.1'"
-    echo "  export DB_PASSWORD='tu_password'"
-    echo "  export JWT_SECRET='tu_jwt_secret'"
-    echo "  export REFRESH_SECRET='tu_refresh_secret'"
-    echo "  export ORCHESTRATOR_URL='http://10.0.0.4:3002'"
-    echo "  export ORCHESTRATOR_TOKEN='tu_token'"
-    exit 1
-fi
+# Valores por defecto si no están configurados (para deployment automático)
+DB_HOST="${DB_HOST:-35.199.81.198}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-sgst_db}"
+DB_USER="${DB_USER:-sgst_user}"
+DB_PASSWORD="${DB_PASSWORD:-sgst_password}"
+ORCHESTRATOR_URL="${ORCHESTRATOR_URL:-http://35.198.59.98:3002}"
+ORCHESTRATOR_TOKEN="${ORCHESTRATOR_TOKEN:-aB3xK9mP2vQ7wR5tY8uI1oE4nM6cL0dF9gH2jK5sA8bC1eD4fG7hJ0kL3mN6pQ9rS2tU5vW8xY1zA4}"
+JWT_SECRET="${JWT_SECRET:-xY9zA2bC5dE8fG1hI4jK7lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0}"
+REFRESH_SECRET="${REFRESH_SECRET:-mN6pQ9rS2tU5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9fG2hI5jK8lM1nO4pQ7rS0tU3vW6xY9zA2}"
 
 # Actualizar sistema
 echo "Actualizando sistema..."
