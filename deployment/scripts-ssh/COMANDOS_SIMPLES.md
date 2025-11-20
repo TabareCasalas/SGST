@@ -11,11 +11,11 @@
 apt update && apt install -y git && cd /tmp && git clone -b taba-branch https://github.com/TabareCasalas/SGST.git sgst && cd sgst && bash deployment/scripts-ssh/database-deploy.sh
 ```
 
-**Después del deployment, configurar acceso remoto:**
-
-```bash
-echo -e "\n# Conexiones desde Backend SGST\nhost    all             all             35.199.81.198/32         md5\n\n# Conexiones desde Camunda\nhost    all             all             35.198.59.98/32         md5" | sudo tee -a /etc/postgresql/15/main/pg_hba.conf && sudo systemctl restart postgresql && sudo systemctl status postgresql
-```
+**Nota:** El script configura automáticamente:
+- ✅ Bases de datos (sgst_db y camunda_db)
+- ✅ Usuario sgst_user
+- ✅ Acceso remoto en pg_hba.conf (Backend: 35.199.81.198, Camunda: 35.198.59.98)
+- ✅ PostgreSQL para aceptar conexiones remotas
 
 ---
 
