@@ -148,6 +148,25 @@ else
     echo -e "${YELLOW}⚠ UFW no está instalado, configurando firewall manualmente...${NC}"
 fi
 
+# Limpiar espacio antes de construir
+echo -e "${YELLOW}[7.5] Limpiando espacio en disco...${NC}"
+echo "Espacio disponible antes de limpiar:"
+df -h / | tail -1
+
+# Limpiar Docker si está instalado
+if command -v docker &> /dev/null; then
+    echo "Limpiando Docker..."
+    docker system prune -af 2>/dev/null || sudo docker system prune -af 2>/dev/null || true
+    docker builder prune -af 2>/dev/null || sudo docker builder prune -af 2>/dev/null || true
+fi
+
+# Limpiar paquetes y cache
+apt-get autoremove -y -qq 2>/dev/null || true
+apt-get clean -qq 2>/dev/null || true
+
+echo "Espacio disponible después de limpiar:"
+df -h / | tail -1
+
 # Construir y levantar contenedores
 echo -e "${YELLOW}[8] Construyendo y levantando contenedores...${NC}"
 cd $APP_DIR
@@ -165,13 +184,17 @@ fi
 echo "Deteniendo contenedores existentes..."
 $DOCKER_CMD compose down 2>/dev/null || true
 
+# Limpiar build cache de Docker antes de construir
+echo "Limpiando cache de build de Docker..."
+$DOCKER_CMD builder prune -af 2>/dev/null || true
+
 # Descargar imágenes actualizadas
 echo "Descargando imágenes..."
 $DOCKER_CMD compose pull
 
-# Construir imágenes
+# Construir imágenes (sin --no-cache para ahorrar espacio, usar cache si existe)
 echo "Construyendo imágenes (esto puede tardar varios minutos)..."
-$DOCKER_CMD compose build --no-cache
+$DOCKER_CMD compose build
 
 # Levantar servicios
 echo "Levantando servicios..."

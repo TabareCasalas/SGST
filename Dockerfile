@@ -1,11 +1,11 @@
 # Multi-stage build para Frontend React
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copiar archivos de dependencias del frontend
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit
 
 # Copiar código fuente del frontend
 COPY frontend/ ./

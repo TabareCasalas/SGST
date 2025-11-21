@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar todas las dependencias (incluyendo devDependencies para compilar)
-RUN npm install
+RUN npm install --prefer-offline --no-audit
 
 # Copiar código fuente
 COPY . .
