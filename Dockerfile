@@ -7,6 +7,9 @@ WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci --prefer-offline --no-audit
 
+# Copiar archivos de configuración TypeScript desde la raíz
+COPY tsconfig.json tsconfig.app.json tsconfig.node.json ./
+
 # Copiar código fuente del frontend
 COPY frontend/ ./
 
@@ -15,7 +18,9 @@ ARG VITE_API_URL=http://localhost:3001
 ENV VITE_API_URL=$VITE_API_URL
 
 # Compilar aplicación
-RUN npm run build
+# Usamos vite build directamente ya que Vite maneja TypeScript
+# Esto evita problemas con tsc cuando no encuentra tsconfig.json en el lugar esperado
+RUN vite build
 
 # Stage 2: Nginx para servir la aplicación
 FROM nginx:alpine
