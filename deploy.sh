@@ -59,6 +59,15 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Instalación en el servidor${NC}"
 echo -e "${GREEN}========================================${NC}"
 
+# Verificar que es Ubuntu/Debian
+if [ ! -f /etc/os-release ]; then
+    echo -e "${RED}Error: Sistema operativo no soportado${NC}"
+    exit 1
+fi
+
+. /etc/os-release
+echo -e "${GREEN}✓ Sistema detectado: ${PRETTY_NAME}${NC}"
+
 # Actualizar sistema
 echo -e "${YELLOW}[1] Actualizando sistema...${NC}"
 export DEBIAN_FRONTEND=noninteractive
@@ -86,9 +95,13 @@ if ! command -v docker &> /dev/null; then
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     sudo chmod a+r /etc/apt/keyrings/docker.gpg
     
+    # Detectar versión de Ubuntu
+    . /etc/os-release
+    UBUNTU_CODENAME=${VERSION_CODENAME:-jammy}
+    
     echo \
       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      ${UBUNTU_CODENAME} stable" | \
       sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     
     sudo apt-get update -qq

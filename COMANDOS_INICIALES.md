@@ -5,6 +5,7 @@ Este documento contiene los comandos que necesitas ejecutar para desplegar la ap
 ## Información del Servidor
 
 - **IP Externa**: 35.199.81.198
+- **Sistema Operativo**: Ubuntu (VM en Google Cloud)
 - **Repositorio**: https://github.com/TabareCasalas/SGST/tree/taba-branch
 - **Rama**: taba-branch
 

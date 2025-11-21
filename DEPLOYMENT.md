@@ -6,7 +6,7 @@ Este documento explica cómo desplegar la aplicación SGST en un servidor de Goo
 
 1. **Acceso SSH al servidor**: Debes tener acceso SSH al servidor de Google Cloud
 2. **Clave SSH configurada**: Tu clave SSH debe estar agregada al servidor
-3. **Servidor con Ubuntu/Debian**: El script está optimizado para sistemas basados en Debian
+3. **Servidor con Ubuntu**: El script está optimizado para Ubuntu (probado en Ubuntu 20.04, 22.04, 24.04)
 
 ## Configuración Inicial del Servidor
 

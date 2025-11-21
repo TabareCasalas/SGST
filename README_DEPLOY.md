@@ -4,6 +4,8 @@ Script de deployment automatizado para desplegar toda la aplicación SGST en un 
 
 ## 📋 Resumen
 
+**Sistema Operativo**: Ubuntu (VM en Google Cloud)
+
 Este deployment automatiza la instalación y configuración completa de:
 - ✅ Docker y Docker Compose
 - ✅ PostgreSQL
