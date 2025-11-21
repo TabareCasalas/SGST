@@ -18,9 +18,9 @@ ARG VITE_API_URL=http://localhost:3001
 ENV VITE_API_URL=$VITE_API_URL
 
 # Compilar aplicación
-# Usamos vite build directamente ya que Vite maneja TypeScript
-# Esto evita problemas con tsc cuando no encuentra tsconfig.json en el lugar esperado
-RUN vite build
+# Usamos npx vite build para ejecutar vite desde node_modules
+# Vite maneja TypeScript internamente, no necesitamos tsc por separado
+RUN npx vite build
 
 # Stage 2: Nginx para servir la aplicación
 FROM nginx:alpine
