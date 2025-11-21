@@ -1,69 +1,8 @@
 #!/bin/bash
 
-# Script de deployment automatizado para SGST
-# Este script despliega toda la aplicación en un servidor de Google Cloud
-# Uso: 
-#   Desde fuera: ./deploy.sh [usuario_ssh] [ip_servidor]
-#   Directamente en el servidor: ./deploy.sh
+# Script de deployment para ejecutar directamente en el servidor Ubuntu
+# Uso: ./deploy-local.sh
 
-set -e
-
-# Colores para output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Configuración
-SSH_USER="${1:-$USER}"
-SERVER_IP="${2:-35.199.81.198}"
-GIT_REPO="https://github.com/TabareCasalas/SGST.git"
-GIT_BRANCH="taba-branch"
-APP_DIR="/opt/sgst"
-REPO_URL="https://github.com/TabareCasalas/SGST"
-
-# Detectar si se está ejecutando directamente en el servidor
-# Si el directorio actual es /opt/sgst o similar, asumimos que estamos en el servidor
-RUNNING_LOCALLY=false
-if [[ "$PWD" == "/opt/sgst"* ]] || [[ "$PWD" == "/opt" ]] || [[ -f "docker-compose.yml" ]]; then
-    RUNNING_LOCALLY=true
-fi
-
-# Si se ejecuta con --local o estamos en el servidor, ejecutar directamente
-if [[ "$1" == "--local" ]] || [[ "$RUNNING_LOCALLY" == "true" ]]; then
-    echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}Deployment Local en el Servidor${NC}"
-    echo -e "${GREEN}========================================${NC}"
-    # Continuar con la ejecución local (saltar SSH)
-    RUNNING_LOCALLY=true
-else
-    echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}Deployment Automatizado SGST${NC}"
-    echo -e "${GREEN}========================================${NC}"
-    echo -e "Servidor: ${SSH_USER}@${SERVER_IP}"
-    echo -e "Repositorio: ${REPO_URL}"
-    echo -e "Rama: ${GIT_BRANCH}"
-    echo ""
-
-    # Verificar conexión SSH
-    echo -e "${YELLOW}[1/8] Verificando conexión SSH...${NC}"
-    if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_IP} "echo 'Conexión exitosa'" 2>/dev/null; then
-        echo -e "${RED}Error: No se pudo conectar al servidor${NC}"
-        echo "Asegúrate de que:"
-        echo "  1. El servidor esté accesible"
-        echo "  2. Tengas acceso SSH configurado"
-        echo "  3. La IP sea correcta: ${SERVER_IP}"
-        exit 1
-    fi
-    echo -e "${GREEN}✓ Conexión SSH exitosa${NC}"
-
-    # Ejecutar deployment en el servidor
-    echo -e "${YELLOW}[2/8] Ejecutando deployment en el servidor...${NC}"
-    ssh ${SSH_USER}@${SERVER_IP} <<'ENDSSH'
-fi
-
-# Código que se ejecuta en el servidor (tanto local como remoto)
-if [[ "$RUNNING_LOCALLY" == "false" ]]; then
 set -e
 
 # Colores
@@ -77,7 +16,7 @@ GIT_REPO="https://github.com/TabareCasalas/SGST.git"
 GIT_BRANCH="taba-branch"
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Instalación en el servidor${NC}"
+echo -e "${GREEN}Deployment Local SGST${NC}"
 echo -e "${GREEN}========================================${NC}"
 
 # Verificar que es Ubuntu/Debian
@@ -92,12 +31,12 @@ echo -e "${GREEN}✓ Sistema detectado: ${PRETTY_NAME}${NC}"
 # Actualizar sistema
 echo -e "${YELLOW}[1] Actualizando sistema...${NC}"
 export DEBIAN_FRONTEND=noninteractive
-sudo apt-get update -qq
-sudo apt-get upgrade -y -qq
+apt-get update -qq
+apt-get upgrade -y -qq
 
 # Instalar dependencias básicas
 echo -e "${YELLOW}[2] Instalando dependencias básicas...${NC}"
-sudo apt-get install -y -qq \
+apt-get install -y -qq \
     curl \
     wget \
     git \
@@ -112,9 +51,9 @@ echo -e "${YELLOW}[3] Verificando Docker...${NC}"
 if ! command -v docker &> /dev/null; then
     echo "Instalando Docker..."
     # Agregar repositorio oficial de Docker
-    sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
     
     # Detectar versión de Ubuntu
     . /etc/os-release
@@ -123,13 +62,11 @@ if ! command -v docker &> /dev/null; then
     echo \
       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
       ${UBUNTU_CODENAME} stable" | \
-      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
     
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    apt-get update -qq
+    apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     
-    # Agregar usuario actual al grupo docker
-    sudo usermod -aG docker $USER
     echo -e "${GREEN}✓ Docker instalado${NC}"
 else
     echo -e "${GREEN}✓ Docker ya está instalado${NC}"
@@ -139,8 +76,8 @@ fi
 if ! docker compose version &> /dev/null; then
     echo "Instalando Docker Compose..."
     DOCKER_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
-    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
+    curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
     echo -e "${GREEN}✓ Docker Compose instalado${NC}"
 else
     echo -e "${GREEN}✓ Docker Compose ya está disponible${NC}"
@@ -148,8 +85,7 @@ fi
 
 # Crear directorio de la aplicación
 echo -e "${YELLOW}[4] Configurando directorio de la aplicación...${NC}"
-sudo mkdir -p $APP_DIR
-sudo chown -R $USER:$USER $APP_DIR
+mkdir -p $APP_DIR
 
 # Clonar o actualizar repositorio
 echo -e "${YELLOW}[5] Clonando/Actualizando repositorio...${NC}"
@@ -162,10 +98,9 @@ if [ -d "$APP_DIR/.git" ]; then
 else
     echo "Clonando repositorio..."
     cd /opt
-    sudo rm -rf $APP_DIR
+    rm -rf $APP_DIR 2>/dev/null || true
     git clone -b $GIT_BRANCH $GIT_REPO $APP_DIR
     cd $APP_DIR
-    sudo chown -R $USER:$USER $APP_DIR
 fi
 echo -e "${GREEN}✓ Repositorio actualizado${NC}"
 
@@ -200,14 +135,14 @@ fi
 # Configurar firewall
 echo -e "${YELLOW}[7] Configurando firewall...${NC}"
 if command -v ufw &> /dev/null; then
-    sudo ufw --force enable || true
-    sudo ufw allow 22/tcp || true    # SSH
-    sudo ufw allow 80/tcp || true    # Frontend
-    sudo ufw allow 3001/tcp || true  # Backend
-    sudo ufw allow 8080/tcp || true  # PgAdmin
-    sudo ufw allow 8081/tcp || true  # Operate
-    sudo ufw allow 8082/tcp || true  # Tasklist
-    sudo ufw allow 8083/tcp || true  # Identity
+    ufw --force enable || true
+    ufw allow 22/tcp || true    # SSH
+    ufw allow 80/tcp || true    # Frontend
+    ufw allow 3001/tcp || true  # Backend
+    ufw allow 8080/tcp || true  # PgAdmin
+    ufw allow 8081/tcp || true  # Operate
+    ufw allow 8082/tcp || true  # Tasklist
+    ufw allow 8083/tcp || true  # Identity
     echo -e "${GREEN}✓ Firewall configurado${NC}"
 else
     echo -e "${YELLOW}⚠ UFW no está instalado, configurando firewall manualmente...${NC}"
@@ -220,10 +155,10 @@ cd $APP_DIR
 # Intentar primero sin sudo, luego con sudo si es necesario
 DOCKER_CMD="docker"
 if ! docker ps &> /dev/null 2>&1; then
-    echo "Docker requiere sudo, usando sudo..."
+    echo "Docker requiere permisos, usando sudo..."
     DOCKER_CMD="sudo docker"
     # Agregar usuario al grupo docker para futuras ejecuciones
-    sudo usermod -aG docker $USER 2>/dev/null || true
+    usermod -aG docker $USER 2>/dev/null || true
 fi
 
 # Detener contenedores existentes
@@ -263,24 +198,10 @@ echo -e "Camunda Identity: ${GREEN}http://${SERVER_IP}:8083${NC}"
 echo -e "PgAdmin: ${GREEN}http://${SERVER_IP}:8080${NC}"
 echo ""
 echo -e "Comandos útiles:"
-echo -e "  Ver logs: ${YELLOW}docker compose logs -f${NC}"
-echo -e "  Ver estado: ${YELLOW}docker compose ps${NC}"
-echo -e "  Detener: ${YELLOW}docker compose down${NC}"
-echo -e "  Reiniciar: ${YELLOW}docker compose restart${NC}"
-echo -e "  Ver logs de un servicio: ${YELLOW}docker compose logs -f [servicio]${NC}"
+echo -e "  Ver logs: ${YELLOW}$DOCKER_CMD compose logs -f${NC}"
+echo -e "  Ver estado: ${YELLOW}$DOCKER_CMD compose ps${NC}"
+echo -e "  Detener: ${YELLOW}$DOCKER_CMD compose down${NC}"
+echo -e "  Reiniciar: ${YELLOW}$DOCKER_CMD compose restart${NC}"
+echo -e "  Ver logs de un servicio: ${YELLOW}$DOCKER_CMD compose logs -f [servicio]${NC}"
 echo -e "${GREEN}========================================${NC}"
-
-ENDSSH
-
-echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Deployment completado exitosamente${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo -e "La aplicación está disponible en:"
-echo -e "  Frontend: ${GREEN}http://${SERVER_IP}${NC}"
-echo -e "  Backend: ${GREEN}http://${SERVER_IP}:3001${NC}"
-echo ""
-echo -e "Para ver los logs en tiempo real, ejecuta:"
-echo -e "  ${YELLOW}ssh ${SSH_USER}@${SERVER_IP} 'cd /opt/sgst && docker compose logs -f'${NC}"
-echo ""
 
