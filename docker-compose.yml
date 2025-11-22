@@ -63,6 +63,16 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
     ports:
       - "${ELASTICSEARCH_PORT:-9200}:9200"
     networks:
@@ -71,7 +81,8 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   # Zeebe - Motor de procesos de Camunda 8
   zeebe:
@@ -252,6 +263,8 @@ volumes:
   pgadmin_data:
     driver: local
   zeebe_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:
