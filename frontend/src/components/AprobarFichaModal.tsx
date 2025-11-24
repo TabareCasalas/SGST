@@ -154,3 +154,4 @@ export function AprobarFichaModal({ ficha, isOpen, onClose, onSuccess }: Props) 
 
 
 
+
